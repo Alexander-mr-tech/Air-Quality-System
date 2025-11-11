@@ -256,7 +256,7 @@ const UserDashboard = () => {
             {loading ? (
               <p>Loading weather data...</p>
             ) : weather ? (
-              <div className="mb-4">
+              <div className="mb-2">
                 <h5>Weather Information:</h5>
                 <p>City: {weather.name}</p>
                 <p>Temperature: {weather.main.temp}°C</p>
@@ -269,7 +269,7 @@ const UserDashboard = () => {
             )}
 
             {/* Sensor Data Graph */}
-            <div className="mb-4">
+            <div className="mb-2">
               <h5>Sensor Data</h5>
               <Line data={sensorChartData} />
             </div>

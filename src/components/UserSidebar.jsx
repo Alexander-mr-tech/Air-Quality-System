@@ -64,35 +64,13 @@ const Sidebar = () => {
       <ul className="nav flex-column" style={{ paddingLeft: 0 }}>
         <li className="nav-item">
           <Link
-            to="/admin-dashboard"
+            to="/user-dashboard"
             className="nav-link text-light"
             style={hoveredLink === "dashboard" ? { ...linkStyle, ...hoverStyle } : linkStyle}
             onMouseEnter={() => setHoveredLink("dashboard")}
             onMouseLeave={() => setHoveredLink(null)}
           >
             Dashboard
-          </Link>
-        </li>
-        <li className="nav-item">
-          <Link
-            to="/view-users"
-            className="nav-link text-light"
-            style={hoveredLink === "users" ? { ...linkStyle, ...hoverStyle } : linkStyle}
-            onMouseEnter={() => setHoveredLink("users")}
-            onMouseLeave={() => setHoveredLink(null)}
-          >
-            View Users
-          </Link>
-        </li>
-        <li className="nav-item">
-          <Link
-            to="/remove-user"
-            className="nav-link text-light"
-            style={hoveredLink === "remove-user" ? { ...linkStyle, ...hoverStyle } : linkStyle}
-            onMouseEnter={() => setHoveredLink("remove-user")}
-            onMouseLeave={() => setHoveredLink(null)}
-          >
-            Remove User
           </Link>
         </li>
         <li className="nav-item">
