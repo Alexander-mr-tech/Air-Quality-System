@@ -1,21 +1,51 @@
 // import React, { useState } from "react";
-// import { useNavigate } from "react-router-dom";
-// import 'bootstrap/dist/css/bootstrap.min.css'; // Ensure Bootstrap is imported
+// import { useNavigate, Link } from "react-router-dom"; // Changed 'a' tag to 'Link'
+// import { auth, db } from "./firebase"; // Import Firebase config
+// import { signInWithEmailAndPassword } from "firebase/auth";
+// import { doc, getDoc } from "firebase/firestore";
+// import 'bootstrap/dist/css/bootstrap.min.css';
 
 // const SignIn = () => {
 //   const [email, setEmail] = useState("");
 //   const [password, setPassword] = useState("");
+//   const [error, setError] = useState(""); // State for error messages
+//   const [loading, setLoading] = useState(false); // State for loading spinner
 //   const navigate = useNavigate();
 
-//   const handleSubmit = (e) => {
+//   const handleSubmit = async (e) => {
 //     e.preventDefault();
-//     // Mock user authentication
-//     if (email === "admin@gmail.com" && password === "admin") {
-//       navigate("/admin-dashboard");
-//     } else if (email === "user@gmail.com" && password === "user") {
-//       navigate("/user-dashboard");
-//     } else {
-//       alert("Invalid credentials");
+//     setError(""); // Clear previous errors
+//     setLoading(true); // Disable button while loading
+
+//     try {
+//       // 1. Authenticate with Firebase Auth
+//       const userCredential = await signInWithEmailAndPassword(auth, email, password);
+//       const user = userCredential.user;
+
+//       // 2. Fetch User Role from Firestore Database
+//       const docRef = doc(db, "users", user.uid);
+//       const docSnap = await getDoc(docRef);
+
+//       if (docSnap.exists()) {
+//         const userData = docSnap.data();
+        
+//         // 3. Redirect based on Role
+//         if (userData.role === "Admin") {
+//           navigate("/admin-dashboard");
+//         } else {
+//           navigate("/user-dashboard");
+//         }
+//       } else {
+//         // Fallback: If user has no database record, send to user dashboard
+//         navigate("/user-dashboard");
+//       }
+
+//     } catch (err) {
+//       console.error(err);
+//       // Show user-friendly error message
+//       setError("Invalid email or password. Please try again.");
+//     } finally {
+//       setLoading(false); // Re-enable button
 //     }
 //   };
 
@@ -26,7 +56,6 @@
 //         backgroundSize: "cover",
 //         height: "100vh",
 //         fontFamily: "Arial, sans-serif",
-//         // color: "white",
 //       }}
 //       className="d-flex justify-content-center align-items-center"
 //     >
@@ -38,14 +67,18 @@
 //           left: "0",
 //           right: "0",
 //           bottom: "0",
-//           background: "rgba(0, 0, 0, 0.4)", // Semi-transparent overlay
+//           background: "rgba(0, 0, 0, 0.4)",
 //           zIndex: "-1",
 //         }}
 //       ></div>
 
 //       {/* Card for the form */}
-//       <div className="card shadow-lg p-4" style={{ width: "22rem", backgroundColor: "rgba(255, 255, 255, 0.8)" }}>
+//       <div className="card shadow-lg p-4" style={{ width: "22rem", backgroundColor: "rgba(255, 255, 255, 0.9)" }}>
 //         <h2 className="text-center mb-4">Sign In</h2>
+        
+//         {/* Error Alert */}
+//         {error && <div className="alert alert-danger text-center">{error}</div>}
+
 //         <form onSubmit={handleSubmit}>
 //           <div className="mb-3">
 //             <label htmlFor="email" className="form-label">Email</label>
@@ -69,10 +102,15 @@
 //               required
 //             />
 //           </div>
-//           <button type="submit" className="btn btn-success w-100">Sign In</button>
+          
+//           <button type="submit" className="btn btn-success w-100" disabled={loading}>
+//             {loading ? "Signing In..." : "Sign In"}
+//           </button>
 //         </form>
+
 //         <div className="mt-3 text-center">
-//           <p>Don't have an account? <a href="/signup">Sign Up</a></p>
+//           {/* Changed <a> to <Link> for better React performance */}
+//           <p>Don't have an account? <Link to="/signup">Sign Up</Link></p>
 //         </div>
 //       </div>
 //     </div>
@@ -81,55 +119,94 @@
 
 // export default SignIn;
 
-
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom"; // Changed 'a' tag to 'Link'
-import { auth, db } from "./firebase"; // Import Firebase config
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import 'bootstrap/dist/css/bootstrap.min.css';
+import { useNavigate, Link } from "react-router-dom";
+import { auth, db } from "./firebase";
+import {
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
+} from "firebase/auth";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 const SignIn = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState(""); // State for error messages
-  const [loading, setLoading] = useState(false); // State for loading spinner
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
   const navigate = useNavigate();
+  const googleProvider = new GoogleAuthProvider();
+
+  const redirectUserByRole = async (user) => {
+  const docRef = doc(db, "users", user.uid);
+  const docSnap = await getDoc(docRef);
+
+  if (docSnap.exists()) {
+    const userData = docSnap.data();
+
+    // Agar purani doc me uid field missing ho to merge se save kar do
+    await setDoc(
+      docRef,
+      {
+        uid: user.uid,
+        name: user.displayName || userData.name || "",
+        email: user.email || userData.email || "",
+      },
+      { merge: true }
+    );
+
+    if (userData.role === "Admin") {
+      navigate("/admin-dashboard");
+    } else {
+      navigate("/user-dashboard");
+    }
+  } else {
+    // Naya Google user
+    await setDoc(docRef, {
+      uid: user.uid,
+      name: user.displayName || "",
+      email: user.email || "",
+      role: "User",
+      createdAt: serverTimestamp(),
+    });
+
+    navigate("/user-dashboard");
+  }
+};
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(""); // Clear previous errors
-    setLoading(true); // Disable button while loading
+    setError("");
+    setLoading(true);
 
     try {
-      // 1. Authenticate with Firebase Auth
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
-      // 2. Fetch User Role from Firestore Database
-      const docRef = doc(db, "users", user.uid);
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        const userData = docSnap.data();
-        
-        // 3. Redirect based on Role
-        if (userData.role === "Admin") {
-          navigate("/admin-dashboard");
-        } else {
-          navigate("/user-dashboard");
-        }
-      } else {
-        // Fallback: If user has no database record, send to user dashboard
-        navigate("/user-dashboard");
-      }
-
+      await redirectUserByRole(user);
     } catch (err) {
       console.error(err);
-      // Show user-friendly error message
       setError("Invalid email or password. Please try again.");
     } finally {
-      setLoading(false); // Re-enable button
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setError("");
+    setGoogleLoading(true);
+
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      await redirectUserByRole(user);
+    } catch (err) {
+      console.error(err);
+      setError("Google sign-in failed. Please try again.");
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -141,31 +218,40 @@ const SignIn = () => {
         height: "100vh",
         fontFamily: "Arial, sans-serif",
       }}
-      className="d-flex justify-content-center align-items-center"
+      className="d-flex justify-content-center align-items-center position-relative"
     >
-      {/* Semi-transparent overlay */}
+      {/* Overlay */}
       <div
         style={{
           position: "absolute",
-          top: "0",
-          left: "0",
-          right: "0",
-          bottom: "0",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
           background: "rgba(0, 0, 0, 0.4)",
-          zIndex: "-1",
+          zIndex: 0,
         }}
       ></div>
 
-      {/* Card for the form */}
-      <div className="card shadow-lg p-4" style={{ width: "22rem", backgroundColor: "rgba(255, 255, 255, 0.9)" }}>
+      {/* Card */}
+      <div
+        className="card shadow-lg p-4"
+        style={{
+          width: "22rem",
+          backgroundColor: "rgba(255, 255, 255, 0.92)",
+          zIndex: 1,
+          borderRadius: "15px",
+        }}
+      >
         <h2 className="text-center mb-4">Sign In</h2>
-        
-        {/* Error Alert */}
+
         {error && <div className="alert alert-danger text-center">{error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
-            <label htmlFor="email" className="form-label">Email</label>
+            <label htmlFor="email" className="form-label">
+              Email
+            </label>
             <input
               type="email"
               id="email"
@@ -175,8 +261,11 @@ const SignIn = () => {
               required
             />
           </div>
+
           <div className="mb-3">
-            <label htmlFor="password" className="form-label">Password</label>
+            <label htmlFor="password" className="form-label">
+              Password
+            </label>
             <input
               type="password"
               id="password"
@@ -186,15 +275,40 @@ const SignIn = () => {
               required
             />
           </div>
-          
-          <button type="submit" className="btn btn-success w-100" disabled={loading}>
+
+          <button
+            type="submit"
+            className="btn btn-success w-100"
+            disabled={loading}
+          >
             {loading ? "Signing In..." : "Sign In"}
           </button>
         </form>
 
+        {/* Divider */}
+        <div className="text-center my-3">
+          <span style={{ color: "#6c757d" }}>or</span>
+        </div>
+
+        {/* Google Button */}
+        <button
+          type="button"
+          className="btn btn-outline-dark w-100 d-flex align-items-center justify-content-center gap-2"
+          onClick={handleGoogleSignIn}
+          disabled={googleLoading}
+        >
+          <img
+            src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+            alt="Google"
+            style={{ width: "20px", height: "20px" }}
+          />
+          {googleLoading ? "Signing in with Google..." : "Continue with Google"}
+        </button>
+
         <div className="mt-3 text-center">
-          {/* Changed <a> to <Link> for better React performance */}
-          <p>Don't have an account? <Link to="/signup">Sign Up</Link></p>
+          <p>
+            Don't have an account? <Link to="/signup">Sign Up</Link>
+          </p>
         </div>
       </div>
     </div>

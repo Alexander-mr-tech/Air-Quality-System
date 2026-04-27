@@ -13,6 +13,7 @@ import ChangePassword from "./components/ChangePassword";
 import MapScreen from "./components/MapScreen";
 import Predictions from "./components/Predictions";
 import SensorData from "./components/SensorData";
+import History from "./components/HistoryScreen";
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 // Main App component with routing
@@ -39,6 +40,7 @@ function App() {
         <Route path="/google-map" element={<MapScreen />} />
         <Route path="/predictions" element={<Predictions />} />
         <Route path="/sensor-data" element={<SensorData />} />
+        <Route path="/history" element={<History />} />
       </Routes>
     </Router>
   );
