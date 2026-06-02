@@ -15,10 +15,12 @@ import Predictions from "./components/Predictions";
 import SensorData from "./components/SensorData";
 import History from "./components/HistoryScreen";
 import 'bootstrap/dist/css/bootstrap.min.css';
+import { ThemeProvider } from "./components/ThemeContext";
 
 // Main App component with routing
 function App() {
   return (
+    <ThemeProvider>
     <Router>
       <Routes>
         {/* Route for Sign In */}
@@ -43,6 +45,7 @@ function App() {
         <Route path="/history" element={<History />} />
       </Routes>
     </Router>
+    </ThemeProvider>
   );
 }
 

@@ -1,39 +1,94 @@
 // import React, { useState } from "react";
-// import { useNavigate } from "react-router-dom";
+// import { useNavigate, Link } from "react-router-dom"; // Use Link for SPA navigation
+// import { auth, db } from "./firebase"; // Import Firebase config
+// import { createUserWithEmailAndPassword } from "firebase/auth";
+// import { doc, setDoc } from "firebase/firestore"; 
 
 // const SignUp = () => {
-//   const [username, setUsername] = useState(""); // State for username
+//   const [username, setUsername] = useState(""); 
 //   const [email, setEmail] = useState("");
 //   const [password, setPassword] = useState("");
-//   const [showPassword, setShowPassword] = useState(false); // State for toggling password visibility
+  
+//   // UI States
+//   const [showPassword, setShowPassword] = useState(false); 
+//   const [error, setError] = useState(""); // To show error messages
+//   const [loading, setLoading] = useState(false); // To disable button during submit
+
 //   const navigate = useNavigate();
 
-//   const handleSubmit = (e) => {
+//   const handleSubmit = async (e) => {
 //     e.preventDefault();
-//     // Add sign up logic here (e.g., API call)
-//     console.log("User signed up:", { username, email, password });
-//     navigate("/signin"); // Redirect to sign-in page after sign-up
+//     setError(""); // Clear previous errors
+//     setLoading(true);
+
+//     try {
+//       // 1. Create User in Firebase Authentication
+//       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+//       const user = userCredential.user;
+
+//       // 2. Save User Details (Username, Role) to Firestore Database
+//       // We use the 'uid' from Auth as the document ID to link them perfectly
+//       await setDoc(doc(db, "users", user.uid), {
+//         uid: user.uid,
+//         name: username, // Saving the username here
+//         email: email,
+//         role: "User",   // Default role is 'User'
+//         createdAt: new Date().toISOString()
+//       });
+
+//       console.log("User signed up:", user);
+//       alert("Account created successfully!");
+      
+//       // Redirect to dashboard (or signin page if you prefer)
+//       navigate("/user-dashboard"); 
+
+//     } catch (err) {
+//       console.error(err);
+//       // specific error handling for common issues
+//       if (err.code === 'auth/email-already-in-use') {
+//         setError("This email is already registered.");
+//       } else if (err.code === 'auth/weak-password') {
+//         setError("Password should be at least 6 characters.");
+//       } else {
+//         setError(err.message);
+//       }
+//     } finally {
+//       setLoading(false);
+//     }
 //   };
 
 //   const togglePassword = () => {
-//     setShowPassword(!showPassword); // Toggle password visibility
+//     setShowPassword(!showPassword); 
 //   };
 
 //   return (
 //     <div
 //       style={{
-//         background: "url('/assets/background.jpg') no-repeat center center fixed", // Local image path in public/assets
-//         backgroundSize: "cover", // Ensure the image covers the whole background
-//         height: "100vh", // Full viewport height
-//         display: "flex", // Use Flexbox to center the content
-//         justifyContent: "center", // Center horizontally
-//         alignItems: "center", // Center vertically
-//         fontFamily: "Arial, sans-serif", // Set font
-//         color: "white", // White text on dark background
+//         background: "url('/assets/background.jpg') no-repeat center center fixed",
+//         backgroundSize: "cover",
+//         height: "100vh",
+//         display: "flex",
+//         justifyContent: "center",
+//         alignItems: "center",
+//         fontFamily: "Arial, sans-serif",
 //       }}
 //     >
-//       <div className="card shadow-lg p-4" style={{ width: "22rem", backgroundColor: "rgba(255, 255, 255, 0.8)" }}>
+//       {/* Semi-transparent overlay for better text readability */}
+//       <div
+//         style={{
+//           position: "absolute",
+//           top: "0", left: "0", right: "0", bottom: "0",
+//           background: "rgba(0, 0, 0, 0.4)",
+//           zIndex: "0",
+//         }}
+//       ></div>
+
+//       <div className="card shadow-lg p-4" style={{ width: "22rem", backgroundColor: "rgba(255, 255, 255, 0.9)", zIndex: "1" }}>
 //         <h2 className="text-center mb-4">Sign Up</h2>
+        
+//         {/* Error Alert */}
+//         {error && <div className="alert alert-danger text-center">{error}</div>}
+
 //         <form onSubmit={handleSubmit}>
 //           <div className="mb-3">
 //             <label htmlFor="username" className="form-label">
@@ -66,7 +121,7 @@
 //               Password
 //             </label>
 //             <input
-//               type={showPassword ? "text" : "password"} // Toggle the input type based on the state
+//               type={showPassword ? "text" : "password"}
 //               id="password"
 //               className="form-control"
 //               value={password}
@@ -80,19 +135,22 @@
 //                 right: "10px",
 //                 transform: "translateY(-50%)",
 //                 cursor: "pointer",
+//                 color: "black" // Ensure icon is visible against white input
 //               }}
 //               onClick={togglePassword}
 //             >
-//               <i className={showPassword ? "fas fa-eye-slash" : "fas fa-eye"}></i> {/* Eye icon */}
+//               <i className={showPassword ? "fas fa-eye-slash" : "fas fa-eye"}></i>
 //             </span>
 //           </div>
-//           <button type="submit" className="btn btn-success w-100">
-//             Sign Up
+          
+//           <button type="submit" className="btn btn-success w-100" disabled={loading}>
+//             {loading ? "Creating Account..." : "Sign Up"}
 //           </button>
 //         </form>
+        
 //         <div className="mt-3 text-center">
 //           <p>
-//             Already have an account? <a href="/signin">Sign In</a>
+//             Already have an account? <Link to="/signin">Sign In</Link>
 //           </p>
 //         </div>
 //       </div>
@@ -102,57 +160,118 @@
 
 // export default SignUp;
 
-
-import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom"; // Use Link for SPA navigation
-import { auth, db } from "./firebase"; // Import Firebase config
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { auth, db } from "./firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore"; 
+import { doc, setDoc } from "firebase/firestore";
 
 const SignUp = () => {
-  const [username, setUsername] = useState(""); 
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  
-  // UI States
-  const [showPassword, setShowPassword] = useState(false); 
-  const [error, setError] = useState(""); // To show error messages
-  const [loading, setLoading] = useState(false); // To disable button during submit
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const canvasRef = useRef(null);
 
   const navigate = useNavigate();
 
+  // Same canvas background as SignIn
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    let animId;
+
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    resize();
+    window.addEventListener("resize", resize);
+
+    const stars = Array.from({ length: 120 }, () => ({
+      x: Math.random(),
+      y: Math.random() * 0.65,
+      r: Math.random() * 1.4 + 0.3,
+      o: Math.random() * 0.6 + 0.2,
+      speed: Math.random() * 0.004 + 0.001,
+      phase: Math.random() * Math.PI * 2,
+    }));
+
+    const particles = Array.from({ length: 18 }, () => ({
+      x: Math.random() * window.innerWidth,
+      y: window.innerHeight * (0.4 + Math.random() * 0.6),
+      r: Math.random() * 2 + 1,
+      vy: -(Math.random() * 0.4 + 0.2),
+      vx: (Math.random() - 0.5) * 0.3,
+      o: Math.random() * 0.5 + 0.2,
+      maxY: window.innerHeight * (Math.random() * 0.3 + 0.05),
+    }));
+
+    let t = 0;
+    const draw = () => {
+      const W = canvas.width;
+      const H = canvas.height;
+      ctx.clearRect(0, 0, W, H);
+
+      stars.forEach((s) => {
+        const twinkle = s.o + Math.sin(t * s.speed * 60 + s.phase) * 0.2;
+        ctx.beginPath();
+        ctx.arc(s.x * W, s.y * H, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,255,255,${Math.max(0, twinkle)})`;
+        ctx.fill();
+      });
+
+      particles.forEach((p) => {
+        p.y += p.vy;
+        p.x += p.vx;
+        p.o -= 0.0015;
+        if (p.y < p.maxY || p.o <= 0) {
+          p.y = canvas.height * (0.5 + Math.random() * 0.5);
+          p.x = Math.random() * canvas.width;
+          p.o = Math.random() * 0.5 + 0.2;
+        }
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(74,158,255,${p.o})`;
+        ctx.fill();
+      });
+
+      t++;
+      animId = requestAnimationFrame(draw);
+    };
+    draw();
+
+    return () => {
+      cancelAnimationFrame(animId);
+      window.removeEventListener("resize", resize);
+    };
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(""); // Clear previous errors
+    setError("");
     setLoading(true);
 
     try {
-      // 1. Create User in Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // 2. Save User Details (Username, Role) to Firestore Database
-      // We use the 'uid' from Auth as the document ID to link them perfectly
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
-        name: username, // Saving the username here
+        name: username,
         email: email,
-        role: "User",   // Default role is 'User'
-        createdAt: new Date().toISOString()
+        role: "User",
+        createdAt: new Date().toISOString(),
       });
 
-      console.log("User signed up:", user);
-      alert("Account created successfully!");
-      
-      // Redirect to dashboard (or signin page if you prefer)
-      navigate("/user-dashboard"); 
-
+      navigate("/user-dashboard");
     } catch (err) {
       console.error(err);
-      // specific error handling for common issues
-      if (err.code === 'auth/email-already-in-use') {
+      if (err.code === "auth/email-already-in-use") {
         setError("This email is already registered.");
-      } else if (err.code === 'auth/weak-password') {
+      } else if (err.code === "auth/weak-password") {
         setError("Password should be at least 6 characters.");
       } else {
         setError(err.message);
@@ -162,102 +281,193 @@ const SignUp = () => {
     }
   };
 
-  const togglePassword = () => {
-    setShowPassword(!showPassword); 
+  const inputStyle = {
+    width: "100%",
+    background: "rgba(255,255,255,0.05)",
+    border: "0.5px solid rgba(255,255,255,0.1)",
+    borderRadius: "9px",
+    padding: "11px 13px",
+    color: "#fff",
+    fontSize: "14px",
+    fontFamily: "inherit",
+    outline: "none",
+    marginBottom: "16px",
+    boxSizing: "border-box",
+  };
+
+  const labelStyle = {
+    display: "block",
+    fontSize: "12px",
+    color: "rgba(255,255,255,0.45)",
+    marginBottom: "6px",
   };
 
   return (
-    <div
-      style={{
-        background: "url('/assets/background.jpg') no-repeat center center fixed",
-        backgroundSize: "cover",
-        height: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        fontFamily: "Arial, sans-serif",
-      }}
-    >
-      {/* Semi-transparent overlay for better text readability */}
-      <div
-        style={{
-          position: "absolute",
-          top: "0", left: "0", right: "0", bottom: "0",
-          background: "rgba(0, 0, 0, 0.4)",
-          zIndex: "0",
-        }}
-      ></div>
+    <div style={{
+      minHeight: "100vh",
+      position: "relative",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontFamily: "'Inter','Segoe UI',sans-serif",
+      overflow: "hidden",
+      background: "linear-gradient(180deg, #020d1f 0%, #041830 25%, #062545 50%, #0a3a6e 75%, #1a5599 100%)",
+    }}>
 
-      <div className="card shadow-lg p-4" style={{ width: "22rem", backgroundColor: "rgba(255, 255, 255, 0.9)", zIndex: "1" }}>
-        <h2 className="text-center mb-4">Sign Up</h2>
-        
-        {/* Error Alert */}
-        {error && <div className="alert alert-danger text-center">{error}</div>}
+      {/* Animated canvas */}
+      <canvas ref={canvasRef} style={{
+        position: "absolute", inset: 0, zIndex: 0, pointerEvents: "none",
+      }} />
+
+      {/* Atmosphere glow */}
+      <div style={{
+        position: "absolute", bottom: "-40px", left: "-10%", right: "-10%",
+        height: "200px", borderRadius: "50%",
+        background: "rgba(30,111,255,0.18)", filter: "blur(40px)",
+        zIndex: 0, pointerEvents: "none",
+      }} />
+
+      {/* Earth curve */}
+      <div style={{
+        position: "absolute", bottom: "-80px", left: "-10%", right: "-10%",
+        height: "160px", borderRadius: "50%",
+        background: "rgba(10,25,55,0.85)",
+        borderTop: "0.5px solid rgba(74,158,255,0.25)",
+        zIndex: 1, pointerEvents: "none",
+      }} />
+
+      {/* Card */}
+      <div style={{
+        position: "relative", zIndex: 2,
+        background: "rgba(4,18,40,0.75)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        border: "0.5px solid rgba(74,158,255,0.2)",
+        borderRadius: "16px",
+        padding: "36px 32px",
+        width: "360px",
+      }}>
+
+        {/* Top glow line */}
+        <div style={{
+          position: "absolute", top: 0, left: "25%", right: "25%", height: "1px",
+          background: "linear-gradient(90deg, transparent, rgba(74,158,255,0.6), transparent)",
+          borderRadius: "1px",
+        }} />
+
+        {/* Logo */}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "28px" }}>
+          <div style={{
+            width: "36px", height: "36px", background: "var(--accent)",
+            borderRadius: "9px", display: "flex", alignItems: "center",
+            justifyContent: "center", flexShrink: 0,
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M12 4C9.5 4 7 5.8 6.2 8.2C4.4 8.6 3 10.1 3 12C3 14.2 4.8 16 7 16H17C19.2 16 21 14.2 21 12C21 10.1 19.6 8.6 17.8 8.2C17 5.8 14.5 4 12 4Z"
+                stroke="white" strokeWidth="1.5" fill="rgba(255,255,255,0.15)"
+              />
+              <line x1="12" y1="16" x2="12" y2="19" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+              <circle cx="12" cy="20.5" r="1" fill="white" />
+            </svg>
+          </div>
+          <div>
+            <p style={{ fontSize: "16px", fontWeight: "600", color: "#fff", lineHeight: "1.1", margin: 0 }}>
+              AirSense
+            </p>
+            <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.35)", letterSpacing: "1px" }}>
+              AIR QUALITY SYSTEM
+            </span>
+          </div>
+        </div>
+
+        <h2 style={{ fontSize: "22px", fontWeight: "600", color: "#fff", margin: "0 0 6px" }}>
+          Sign Up
+        </h2>
+        <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)", margin: "0 0 26px" }}>
+          Create your account
+        </p>
+
+        {error && (
+          <div style={{
+            background: "rgba(239,68,68,0.12)",
+            border: "0.5px solid rgba(239,68,68,0.3)",
+            borderRadius: "8px", padding: "10px 14px",
+            color: "#f87171", fontSize: "13px",
+            marginBottom: "16px", textAlign: "center",
+          }}>
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
-          <div className="mb-3">
-            <label htmlFor="username" className="form-label">
-              Username
-            </label>
-            <input
-              type="text"
-              id="username"
-              className="form-control"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
-          </div>
-          <div className="mb-3">
-            <label htmlFor="email" className="form-label">
-              Email
-            </label>
-            <input
-              type="email"
-              id="email"
-              className="form-control"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div className="mb-3 position-relative">
-            <label htmlFor="password" className="form-label">
-              Password
-            </label>
+          <label htmlFor="username" style={labelStyle}>Username</label>
+          <input
+            type="text"
+            id="username"
+            placeholder="John Doe"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+            style={inputStyle}
+          />
+
+          <label htmlFor="email" style={labelStyle}>Email</label>
+          <input
+            type="email"
+            id="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            style={inputStyle}
+          />
+
+          <label htmlFor="password" style={labelStyle}>Password</label>
+          <div style={{ position: "relative", marginBottom: "16px" }}>
             <input
               type={showPassword ? "text" : "password"}
               id="password"
-              className="form-control"
+              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              style={{ ...inputStyle, marginBottom: 0, paddingRight: "40px" }}
             />
             <span
-              className="position-absolute"
+              onClick={() => setShowPassword(!showPassword)}
               style={{
-                top: "72%",
-                right: "10px",
-                transform: "translateY(-50%)",
-                cursor: "pointer",
-                color: "black" // Ensure icon is visible against white input
+                position: "absolute", right: "13px", top: "50%",
+                transform: "translateY(-50%)", cursor: "pointer",
+                color: "rgba(255,255,255,0.35)", fontSize: "13px",
+                userSelect: "none",
               }}
-              onClick={togglePassword}
             >
-              <i className={showPassword ? "fas fa-eye-slash" : "fas fa-eye"}></i>
+              {showPassword ? "🙈" : "👁"}
             </span>
           </div>
-          
-          <button type="submit" className="btn btn-success w-100" disabled={loading}>
+
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              width: "100%", padding: "12px", background: "var(--accent)",
+              border: "none", borderRadius: "9px", color: "#fff",
+              fontSize: "14px", fontWeight: "500", fontFamily: "inherit",
+              cursor: "pointer", opacity: loading ? 0.7 : 1,
+            }}
+          >
             {loading ? "Creating Account..." : "Sign Up"}
           </button>
         </form>
-        
-        <div className="mt-3 text-center">
-          <p>
-            Already have an account? <Link to="/signin">Sign In</Link>
-          </p>
+
+        <div style={{ textAlign: "center", marginTop: "20px", fontSize: "12px", color: "rgba(255,255,255,0.3)" }}>
+          Already have an account?{" "}
+          <Link to="/signin" style={{ color: "var(--dot)", textDecoration: "none" }}>
+            Sign In
+          </Link>
         </div>
+
       </div>
     </div>
   );

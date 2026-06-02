@@ -1,35 +1,39 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { auth, db } from "../firebase"; 
+import { auth, db } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { signOut, onAuthStateChanged } from "firebase/auth";
+import { useTheme } from "./ThemeContext";
 
 const Sidebar = () => {
   const navigate = useNavigate();
-  const location = useLocation(); // Hook to get current route for highlighting
+  const location = useLocation();
+  const { theme } = useTheme();
 
-  // State
   const [userData, setUserData] = useState({
     name: "",
     email: "",
-    role: "", // Start empty to prevent wrong menu flash
-    photoURL: "/assets/profile.png"
+    role: "",
+    photoURL: "/assets/profile.png",
   });
-  const [loading, setLoading] = useState(true); // Loading state control
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
-        // 1. Check LocalStorage for instant load (prevents flicker)
         const cachedRole = localStorage.getItem("userRole");
         const cachedName = localStorage.getItem("userName");
-        
+
         if (cachedRole && cachedName) {
-           setUserData(prev => ({ ...prev, role: cachedRole, name: cachedName, email: currentUser.email }));
-           setLoading(false); 
+          setUserData((prev) => ({
+            ...prev,
+            role: cachedRole,
+            name: cachedName,
+            email: currentUser.email,
+          }));
+          setLoading(false);
         }
 
-        // 2. Fetch fresh data from Firestore to ensure accuracy
         try {
           const docRef = doc(db, "users", currentUser.uid);
           const docSnap = await getDoc(docRef);
@@ -37,17 +41,19 @@ const Sidebar = () => {
           if (docSnap.exists()) {
             const dbData = docSnap.data();
             const role = dbData.role || "User";
-            const name = dbData.name || dbData.username || currentUser.displayName || "User";
+            const name =
+              dbData.name ||
+              dbData.username ||
+              currentUser.displayName ||
+              "User";
 
-            // Update State
             setUserData({
-              name: name,
+              name,
               email: currentUser.email,
-              role: role,
-              photoURL: currentUser.photoURL || "/assets/profile.png"
+              role,
+              photoURL: currentUser.photoURL || "/assets/profile.png",
             });
 
-            // Update Cache
             localStorage.setItem("userRole", role);
             localStorage.setItem("userName", name);
           }
@@ -59,7 +65,7 @@ const Sidebar = () => {
         localStorage.removeItem("userRole");
         localStorage.removeItem("userName");
       }
-      setLoading(false); // Stop loading spinner
+      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -69,90 +75,188 @@ const Sidebar = () => {
     e.preventDefault();
     try {
       await signOut(auth);
-      localStorage.clear(); // Clear cache on logout
+      localStorage.clear();
       navigate("/signin");
     } catch (error) {
       console.error("Error signing out:", error);
     }
   };
 
-  // --- STYLES ---
   const isActive = (path) => location.pathname === path;
 
   const linkStyle = (path) => ({
     display: "flex",
     alignItems: "center",
-    padding: "12px 20px",
+    gap: "12px",
+    padding: "10px 16px",
     textDecoration: "none",
-    fontSize: "0.95rem",
+    fontSize: "13px",
     fontWeight: "500",
-    color: isActive(path) ? "#ffffff" : "rgba(255,255,255,0.7)",
-    backgroundColor: isActive(path) ? "rgba(255,255,255,0.1)" : "transparent",
-    borderLeft: isActive(path) ? "4px solid #3498db" : "4px solid transparent",
-    transition: "all 0.3s ease",
-    cursor: "pointer"
+    fontFamily: "'Inter','Segoe UI',sans-serif",
+    color: isActive(path) ? "#fff" : "rgba(255,255,255,0.5)",
+    background: isActive(path) ? "rgba(30,111,255,0.2)" : "transparent",
+    borderLeft: isActive(path)
+      ? "2px solid var(--accent)"
+      : "2px solid transparent",
+    borderRadius: "0 8px 8px 0",
+    marginRight: "12px",
+    transition: "all 0.2s ease",
+    cursor: "pointer",
   });
 
+  const sectionLabel = {
+    fontSize: "10px",
+    fontWeight: "600",
+    letterSpacing: "1.5px",
+    color: "rgba(255,255,255,0.2)",
+    padding: "16px 18px 6px",
+    fontFamily: "'Inter','Segoe UI',sans-serif",
+    textTransform: "uppercase",
+  };
+
+  // Icon SVGs (inline, no font-awesome needed)
+  const Icon = ({ d, d2 }) => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+      style={{ flexShrink: 0, opacity: 0.8 }}>
+      <path d={d} stroke="currentColor" strokeWidth="1.5"
+        strokeLinecap="round" strokeLinejoin="round" />
+      {d2 && <path d={d2} stroke="currentColor" strokeWidth="1.5"
+        strokeLinecap="round" strokeLinejoin="round" />}
+    </svg>
+  );
+
+  const initials = userData.name
+    ? userData.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+    : "?";
+
   return (
-    <div
-      style={{
-        height: "100vh",
-        width: "250px",
-        background: "linear-gradient(to bottom, #2c3e50, #34495e)", // Professional Gradient
-        color: "white",
-        position: "fixed",
-        left: 0,
-        top: 66, // Adjust based on your Navbar height
-        zIndex: 900,
-        boxShadow: "4px 0 10px rgba(0, 0, 0, 0.1)",
-        display: "flex",
-        flexDirection: "column",
-        overflowY: "auto"
-      }}
-    >
+    <div style={{
+      height: "100vh",
+      width: "240px",
+      background: theme.card,
+      backdropFilter: "blur(20px)",
+      WebkitBackdropFilter: "blur(20px)",
+      borderRight: "0.5px solid ${theme.border}`",
+      color: "white",
+      position: "fixed",
+      left: 0,
+      top: 66,
+      zIndex: 900,
+      display: "flex",
+      flexDirection: "column",
+      fontFamily: "'Inter','Segoe UI',sans-serif",
+    }}>
+
+      {/* Top glow line */}
+      <div style={{
+        position: "absolute", top: 0, left: "10%", right: "10%", height: "1px",
+        background: "linear-gradient(90deg, transparent, rgba(74,158,255,0.5), transparent)",
+      }} />
+
       {/* 1. Profile Section */}
-      <div className="text-center py-4 border-bottom border-secondary">
+      <div style={{
+        padding: "24px 18px 18px",
+        borderBottom: "0.5px solid rgba(255,255,255,0.06)",
+      }}>
         {loading ? (
-           // Skeleton Loader while fetching
-           <div className="spinner-border text-light" role="status"></div>
+          <div style={{
+            display: "flex", alignItems: "center", gap: "12px",
+          }}>
+            <div style={{
+              width: "42px", height: "42px", borderRadius: "50%",
+              background: "rgba(255,255,255,0.06)", flexShrink: 0,
+            }} />
+            <div>
+              <div style={{ width: "80px", height: "10px", background: "rgba(255,255,255,0.06)", borderRadius: "4px", marginBottom: "6px" }} />
+              <div style={{ width: "110px", height: "8px", background: "rgba(255,255,255,0.04)", borderRadius: "4px" }} />
+            </div>
+          </div>
         ) : (
-          <>
-            <img
-              src={userData.photoURL}
-              alt="Profile"
-              className="rounded-circle shadow-sm"
-              style={{ width: "80px", height: "80px", objectFit: "cover", border: "3px solid rgba(255,255,255,0.2)", marginBottom: "10px" }}
-            />
-            <h6 className="mb-0 fw-bold">{userData.name}</h6>
-            <small className="text-white-50 d-block mb-2" style={{fontSize: "0.75rem"}}>{userData.email}</small>
-            <span className={`badge ${userData.role === 'Admin' ? 'bg-warning text-dark' : 'bg-info text-dark'}`}>
-              {userData.role}
-            </span>
-          </>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            {/* Avatar */}
+            {userData.photoURL && !userData.photoURL.includes("/assets/") ? (
+              <img
+                src={userData.photoURL}
+                alt="Profile"
+                style={{
+                  width: "42px", height: "42px", borderRadius: "50%",
+                  objectFit: "cover",
+                  border: "1px solid rgba(74,158,255,0.3)",
+                  flexShrink: 0,
+                }}
+              />
+            ) : (
+              <div style={{
+                width: "42px", height: "42px", borderRadius: "50%",
+                background: "rgba(30,111,255,0.3)",
+                border: "1px solid rgba(74,158,255,0.3)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: "14px", fontWeight: "600", color: "var(--dot)",
+                flexShrink: 0,
+              }}>
+                {initials}
+              </div>
+            )}
+            <div style={{ overflow: "hidden" }}>
+              <p style={{
+                margin: 0, fontSize: "13px", fontWeight: "600",
+                color: "#fff", whiteSpace: "nowrap",
+                overflow: "hidden", textOverflow: "ellipsis",
+              }}>
+                {userData.name}
+              </p>
+              <p style={{
+                margin: "1px 0 5px", fontSize: "11px",
+                color: "rgba(255,255,255,0.35)",
+                whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+              }}>
+                {userData.email}
+              </p>
+              <span style={{
+                display: "inline-block",
+                padding: "2px 8px",
+                borderRadius: "4px",
+                fontSize: "10px",
+                fontWeight: "600",
+                letterSpacing: "0.5px",
+                background: userData.role === "Admin"
+                  ? "rgba(251,191,36,0.15)"
+                  : "var(--border)",
+                color: userData.role === "Admin" ? "#fbbf24" : "var(--dot)",
+              }}>
+                {userData.role}
+              </span>
+            </div>
+          </div>
         )}
       </div>
 
-      {/* 2. Navigation Links */}
-      <div className="flex-grow-1 py-3">
-        
-        {/* COMMON: Dashboard */}
-        <Link to={userData.role === "Admin" ? "/admin-dashboard" : "/user-dashboard"} style={linkStyle(userData.role === "Admin" ? "/admin-dashboard" : "/user-dashboard")}>
-          <i className="fas fa-tachometer-alt me-3" style={{width: "20px"}}></i> Dashboard
+      {/* 2. Navigation */}
+      <div style={{ flex: 1, overflowY: "auto", paddingTop: "8px" }}>
+
+        {/* Dashboard */}
+        <div style={sectionLabel}>Overview</div>
+        <Link
+          to={userData.role === "Admin" ? "/admin-dashboard" : "/user-dashboard"}
+          style={linkStyle(userData.role === "Admin" ? "/admin-dashboard" : "/user-dashboard")}
+        >
+          <Icon d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" d2="M9 21V12h6v9" />
+          Dashboard
         </Link>
 
-        {/* LOADING CHECK: Don't show menus until role is known */}
         {!loading && (
           <>
             {/* ADMIN LINKS */}
             {userData.role === "Admin" && (
               <>
-                <div className="text-uppercase text-white-50 px-3 mt-3 mb-1" style={{fontSize: "0.75rem", letterSpacing: "1px"}}>Management</div>
-                
+                <div style={sectionLabel}>Management</div>
                 <Link to="/add-user" style={linkStyle("/add-user")}>
-                  <i className="fas fa-user-plus me-3" style={{width: "20px"}}></i> Add User
+                  <Icon d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M12 7a4 4 0 110 8 4 4 0 010-8zM19 8v6M22 11h-6" />
+                  Add User
                 </Link>
                 <Link to="/view-users" style={linkStyle("/view-users")}>
-                  <i className="fas fa-users me-3" style={{width: "20px"}}></i> View Users
+                  <Icon d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+                  View Users
                 </Link>
               </>
             )}
@@ -160,46 +264,65 @@ const Sidebar = () => {
             {/* USER LINKS */}
             {userData.role === "User" && (
               <>
-                <div className="text-uppercase text-white-50 px-3 mt-3 mb-1" style={{fontSize: "0.75rem", letterSpacing: "1px"}}>Monitoring</div>
-                
+                <div style={sectionLabel}>Monitoring</div>
                 <Link to="/sensor-data" style={linkStyle("/sensor-data")}>
-                  <i className="fas fa-microchip me-3" style={{width: "20px"}}></i> Sensor Data
+                  <Icon d="M12 2a4 4 0 014 4v6a4 4 0 01-8 0V6a4 4 0 014-4z" d2="M8 14a7 7 0 0010.95 1M5.07 13A7 7 0 0112 19" />
+                  Sensor Data
                 </Link>
                 <Link to="/google-map" style={linkStyle("/google-map")}>
-                  <i className="fas fa-map-marked-alt me-3" style={{width: "20px"}}></i> Live Map
+                  <Icon d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" d2="M12 11.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
+                  Live Map
                 </Link>
                 <Link to="/predictions" style={linkStyle("/predictions")}>
-                  <i className="fas fa-chart-line me-3" style={{width: "20px"}}></i> Predictions
+                  <Icon d="M3 17l4-8 4 4 4-6 4 5" />
+                  Predictions
                 </Link>
                 <Link to="/history" style={linkStyle("/history")}>
-                  <i className="fas fa-history me-3" style={{width: "20px"}}></i> History
+                  <Icon d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  History
                 </Link>
               </>
             )}
           </>
         )}
 
-        {/* COMMON: Settings */}
-        <div className="text-uppercase text-white-50 px-3 mt-3 mb-1" style={{fontSize: "0.75rem", letterSpacing: "1px"}}>Settings</div>
-        
+        {/* Settings */}
+        <div style={sectionLabel}>Settings</div>
         <Link to="/profile" style={linkStyle("/profile")}>
-          <i className="fas fa-user-circle me-3" style={{width: "20px"}}></i> Profile
+          <Icon d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z" />
+          Profile
         </Link>
         <Link to="/change-password" style={linkStyle("/change-password")}>
-          <i className="fas fa-key me-3" style={{width: "20px"}}></i> Password
+          <Icon d="M15 7a4 4 0 010 5.66M17.66 4.34a8 8 0 010 11.32M6.34 17.66a8 8 0 010-11.32M9 12a3 3 0 106 0 3 3 0 00-6 0z" />
+          Password
         </Link>
       </div>
 
-      {/* 3. Footer / Logout */}
-      <div className="p-3 border-top border-secondary bg-dark bg-opacity-25">
+      {/* 3. Sign Out */}
+      <div style={{
+        padding: "14px 16px",
+        borderTop: "0.5px solid rgba(255,255,255,0.06)",
+      }}>
         <a
           href="#signout"
           onClick={handleSignOut}
-          className="d-flex align-items-center text-light text-decoration-none"
-          style={{ transition: "0.3s" }}
+          style={{
+            display: "flex", alignItems: "center", gap: "12px",
+            textDecoration: "none", color: "rgba(255,255,255,0.45)",
+            fontSize: "13px", fontWeight: "500",
+            padding: "10px 16px",
+            borderRadius: "8px",
+            transition: "all 0.2s",
+            border: "0.5px solid rgba(239,68,68,0.15)",
+            background: "rgba(239,68,68,0.05)",
+          }}
         >
-          <i className="fas fa-sign-out-alt me-3 text-danger"></i>
-          <span className="fw-bold">Sign Out</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+            style={{ flexShrink: 0, color: "#f87171" }}>
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"
+              stroke="#f87171" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span style={{ color: "#f87171" }}>Sign Out</span>
         </a>
       </div>
 

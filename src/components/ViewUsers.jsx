@@ -1,23 +1,22 @@
-// import { useState, useEffect } from "react";
+// import React, { useState, useEffect } from "react";
 // import { Link } from "react-router-dom";
 // import Navbar from "./NavBar";
 // import Sidebar from "./Sidebar";
-// import { db } from "../firebase"; // 1. Import Firebase DB
-// import { collection, getDocs, deleteDoc, doc } from "firebase/firestore"; // 2. Import Firestore functions
+// import { db } from "../firebase"; 
+// import { collection, getDocs, deleteDoc, doc } from "firebase/firestore"; 
 
 // const ViewUsers = () => {
-//   // 3. Use State instead of hardcoded array
 //   const [users, setUsers] = useState([]); 
-//   const [loading, setLoading] = useState(true); // Add loading state
+//   const [loading, setLoading] = useState(true);
 
-//   // 4. Fetch Users from Firestore on Load
+//   // 1. Fetch Users
 //   useEffect(() => {
 //     const fetchUsers = async () => {
 //       try {
 //         const querySnapshot = await getDocs(collection(db, "users"));
 //         const userList = querySnapshot.docs.map((doc) => ({
-//           id: doc.id, // Get the Document ID
-//           ...doc.data(), // Get the data (name, email, etc.)
+//           id: doc.id, 
+//           ...doc.data(), 
 //         }));
 //         setUsers(userList);
 //       } catch (error) {
@@ -30,15 +29,11 @@
 //     fetchUsers();
 //   }, []);
 
-//   // 5. Delete User Function
+//   // 2. Delete User
 //   const handleDelete = async (id) => {
-//     // Confirm before deleting
 //     if (window.confirm("Are you sure you want to delete this user?")) {
 //       try {
-//         // Delete from Firestore
 //         await deleteDoc(doc(db, "users", id));
-        
-//         // Remove from UI immediately (so page doesn't need reload)
 //         setUsers(users.filter((user) => user.id !== id));
 //         alert("User deleted successfully.");
 //       } catch (error) {
@@ -49,80 +44,104 @@
 //   };
 
 //   return (
-//     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+//     // 3. FIX: Lock Screen Height (No Body Scroll)
+//     <div style={{ display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden" }}>
 //       <Navbar />
 
-//       <div style={{ display: "flex", flex: 1 }}>
+//       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
 //         <Sidebar />
 
+//         {/* MAIN CONTENT WRAPPER */}
 //         <div
 //           style={{
 //             flex: 1,
+//             marginLeft: "250px", // 4. FIX: Align next to Sidebar
 //             display: "flex",
 //             justifyContent: "center",
-//             alignItems: "flex-start",
-//             padding: "40px",
+//             alignItems: "flex-start", // Start content from top
+//             padding: "30px", // Comfortable padding
 //             background: "linear-gradient(to bottom, #3498db, #2c3e50)",
-//             overflowY: "auto",
+//             overflow: "hidden" // Prevent outer scrolling
 //           }}
 //         >
+//           {/* SCROLLABLE CARD CONTAINER */}
 //           <div
 //             style={{
-//               padding: "30px",
-//               backgroundColor: "rgba(255, 255, 255, 0.95)",
-//               borderRadius: "10px",
-//               boxShadow: "0 4px 15px rgba(0, 0, 0, 0.2)",
 //               width: "100%",
 //               maxWidth: "1000px",
+//               maxHeight: "90vh", // 5. FIX: Restrict height so only this card scrolls
+//               overflowY: "auto", // Enable internal scrolling
+//               backgroundColor: "rgba(255, 255, 255, 0.98)",
+//               padding: "30px",
+//               borderRadius: "12px",
+//               boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)",
 //             }}
 //           >
-//             <h2 className="text-center mb-4">View Users</h2>
-//             <p className="text-center mb-4">
-//               Below is the list of all users currently in the system. You can manage them here.
+//             <div className="d-flex justify-content-between align-items-center mb-4">
+//               <h2 className="mb-0 fw-bold">User Management</h2>
+//               <span className="badge bg-primary rounded-pill px-3 py-2">
+//                 Total: {users.length}
+//               </span>
+//             </div>
+            
+//             <p className="text-muted mb-4">
+//               Manage all registered users in the system. Use the actions column to edit details or remove access.
 //             </p>
 
-//             {/* Show Loading Spinner or Table */}
+//             {/* Loading State */}
 //             {loading ? (
-//               <div className="text-center">Loading users...</div>
+//               <div className="text-center py-5">
+//                 <div className="spinner-border text-primary" role="status"></div>
+//                 <p className="mt-2 text-muted">Loading user database...</p>
+//               </div>
 //             ) : (
 //               <div className="table-responsive">
-//                 <table className="table table-bordered table-hover">
+//                 <table className="table table-hover align-middle">
 //                   <thead className="table-light">
 //                     <tr>
-//                       {/* Removed # ID column as Firebase IDs are long and ugly */}
-//                       <th>Name</th>
-//                       <th>Email</th>
-//                       <th>Role</th> {/* Added Role column if you have it */}
-//                       <th>Actions</th>
+//                       <th className="py-3">Name</th>
+//                       <th className="py-3">Email</th>
+//                       <th className="py-3">Role</th>
+//                       <th className="py-3 text-center">Actions</th>
 //                     </tr>
 //                   </thead>
 //                   <tbody>
 //                     {users.length > 0 ? (
 //                       users.map((user) => (
 //                         <tr key={user.id}>
-//                           <td>{user.name || "No Name"}</td>
+//                           <td className="fw-bold text-primary">
+//                             <i className="fas fa-user-circle me-2 text-secondary"></i>
+//                             {user.name || "No Name"}
+//                           </td>
 //                           <td>{user.email}</td>
-//                           <td>{user.role || "User"}</td>
 //                           <td>
+//                             <span className={`badge bg-${user.role === 'Admin' ? 'dark' : 'info'}`}>
+//                               {user.role || "User"}
+//                             </span>
+//                           </td>
+//                           <td className="text-center">
 //                             <Link
 //                               to={`/edit-user/${user.id}`}
-//                               className="btn btn-warning btn-sm me-2"
+//                               className="btn btn-outline-warning btn-sm me-2"
+//                               title="Edit User"
 //                             >
-//                               Edit
+//                               <i className="fas fa-edit"></i>
 //                             </Link>
 //                             <button
-//                               className="btn btn-danger btn-sm"
-//                               onClick={() => handleDelete(user.id)} // Call delete function
+//                               className="btn btn-outline-danger btn-sm"
+//                               onClick={() => handleDelete(user.id)}
+//                               title="Delete User"
 //                             >
-//                               Remove
+//                               <i className="fas fa-trash-alt"></i>
 //                             </button>
 //                           </td>
 //                         </tr>
 //                       ))
 //                     ) : (
 //                       <tr>
-//                         <td colSpan="4" className="text-center">
-//                           No users found.
+//                         <td colSpan="4" className="text-center py-5 text-muted">
+//                           <i className="fas fa-users-slash fa-3x mb-3"></i>
+//                           <p>No users found in the database.</p>
 //                         </td>
 //                       </tr>
 //                     )}
@@ -131,9 +150,9 @@
 //               </div>
 //             )}
 
-//             <div className="mt-4">
+//             <div className="mt-4 pt-3 border-top">
 //               <Link to="/admin-dashboard" className="btn btn-secondary w-100">
-//                 Back to Dashboard
+//                 <i className="fas fa-arrow-left me-2"></i> Back to Dashboard
 //               </Link>
 //             </div>
 //           </div>
@@ -145,167 +164,308 @@
 
 // export default ViewUsers;
 
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "./NavBar";
 import Sidebar from "./Sidebar";
-import { db } from "../firebase"; 
-import { collection, getDocs, deleteDoc, doc } from "firebase/firestore"; 
+import { db } from "../firebase";
+import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 
 const ViewUsers = () => {
-  const [users, setUsers] = useState([]); 
+  const [users,   setUsers]   = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(null);
+  const [search,  setSearch]  = useState("");
 
-  // 1. Fetch Users
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, "users"));
-        const userList = querySnapshot.docs.map((doc) => ({
-          id: doc.id, 
-          ...doc.data(), 
-        }));
-        setUsers(userList);
-      } catch (error) {
-        console.error("Error fetching users:", error);
-      } finally {
-        setLoading(false);
-      }
+        const snap = await getDocs(collection(db, "users"));
+        setUsers(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      } catch (e) { console.error(e); }
+      finally { setLoading(false); }
     };
-
     fetchUsers();
   }, []);
 
-  // 2. Delete User
-  const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this user?")) {
-      try {
-        await deleteDoc(doc(db, "users", id));
-        setUsers(users.filter((user) => user.id !== id));
-        alert("User deleted successfully.");
-      } catch (error) {
-        console.error("Error deleting user:", error);
-        alert("Failed to delete user.");
-      }
-    }
+  const handleDelete = async (id, name) => {
+    if (!window.confirm(`Delete user "${name}"? This cannot be undone.`)) return;
+    setDeleting(id);
+    try {
+      await deleteDoc(doc(db, "users", id));
+      setUsers((prev) => prev.filter((u) => u.id !== id));
+    } catch (e) {
+      console.error(e);
+      alert("Failed to delete user.");
+    } finally { setDeleting(null); }
   };
 
-  return (
-    // 3. FIX: Lock Screen Height (No Body Scroll)
-    <div style={{ display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden" }}>
-      <Navbar />
+  const filtered = users.filter((u) =>
+    (u.name  || "").toLowerCase().includes(search.toLowerCase()) ||
+    (u.email || "").toLowerCase().includes(search.toLowerCase())
+  );
 
+  const font = "'Inter','Segoe UI',sans-serif";
+
+  const card = {
+    background: "var(--card)",
+    backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+    border: "0.5px solid var(--border)",
+    borderRadius: "14px", fontFamily: font,
+  };
+
+  const initials = (name) =>
+    name ? name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) : "?";
+
+  return (
+    <div style={{
+      display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden",
+      background: "var(--bg)",
+      fontFamily: font,
+    }}>
+      <Navbar />
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
         <Sidebar />
 
-        {/* MAIN CONTENT WRAPPER */}
-        <div
-          style={{
-            flex: 1,
-            marginLeft: "250px", // 4. FIX: Align next to Sidebar
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "flex-start", // Start content from top
-            padding: "30px", // Comfortable padding
-            background: "linear-gradient(to bottom, #3498db, #2c3e50)",
-            overflow: "hidden" // Prevent outer scrolling
-          }}
-        >
-          {/* SCROLLABLE CARD CONTAINER */}
-          <div
-            style={{
-              width: "100%",
-              maxWidth: "1000px",
-              maxHeight: "90vh", // 5. FIX: Restrict height so only this card scrolls
-              overflowY: "auto", // Enable internal scrolling
-              backgroundColor: "rgba(255, 255, 255, 0.98)",
-              padding: "30px",
-              borderRadius: "12px",
-              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)",
-            }}
-          >
-            <div className="d-flex justify-content-between align-items-center mb-4">
-              <h2 className="mb-0 fw-bold">User Management</h2>
-              <span className="badge bg-primary rounded-pill px-3 py-2">
-                Total: {users.length}
-              </span>
+        <div style={{
+          flex: 1, marginLeft: "240px",
+          padding: "24px", overflow: "hidden",
+          display: "flex", flexDirection: "column",
+        }}>
+          <div style={{
+            maxWidth: "1000px", width: "100%", margin: "0 auto",
+            display: "flex", flexDirection: "column", gap: "18px", height: "100%",
+          }}>
+
+            {/* ── Header ── */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+              <div>
+                <h2 style={{ fontSize: "22px", fontWeight: "700", color: "#fff", margin: 0 }}>
+                  User Management
+                </h2>
+                <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)", margin: "5px 0 0" }}>
+                  Manage all registered accounts in the system
+                </p>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <span style={{
+                  padding: "5px 14px", borderRadius: "20px", fontSize: "12px", fontWeight: "600",
+                  background: "rgba(74,158,255,0.1)", border: "0.5px solid rgba(74,158,255,0.2)",
+                  color: "var(--dot)",
+                }}>
+                  {users.length} users
+                </span>
+                <Link to="/add-user" style={{
+                  display: "flex", alignItems: "center", gap: "7px",
+                  padding: "8px 16px", background: "var(--accent)",
+                  border: "none", borderRadius: "8px", color: "#fff",
+                  fontSize: "12px", fontWeight: "600", textDecoration: "none",
+                }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                    <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M12 7a4 4 0 110 8 4 4 0 010-8zM19 8v6M22 11h-6"
+                      stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Add User
+                </Link>
+              </div>
             </div>
-            
-            <p className="text-muted mb-4">
-              Manage all registered users in the system. Use the actions column to edit details or remove access.
-            </p>
 
-            {/* Loading State */}
-            {loading ? (
-              <div className="text-center py-5">
-                <div className="spinner-border text-primary" role="status"></div>
-                <p className="mt-2 text-muted">Loading user database...</p>
+            {/* ── Search bar ── */}
+            <div style={{ position: "relative", flexShrink: 0 }}>
+              <div style={{
+                position: "absolute", left: "13px", top: "50%", transform: "translateY(-50%)",
+                pointerEvents: "none",
+              }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                  <circle cx="11" cy="11" r="8" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5"/>
+                  <path d="M21 21l-4.35-4.35" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
               </div>
-            ) : (
-              <div className="table-responsive">
-                <table className="table table-hover align-middle">
-                  <thead className="table-light">
-                    <tr>
-                      <th className="py-3">Name</th>
-                      <th className="py-3">Email</th>
-                      <th className="py-3">Role</th>
-                      <th className="py-3 text-center">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.length > 0 ? (
-                      users.map((user) => (
-                        <tr key={user.id}>
-                          <td className="fw-bold text-primary">
-                            <i className="fas fa-user-circle me-2 text-secondary"></i>
-                            {user.name || "No Name"}
-                          </td>
-                          <td>{user.email}</td>
-                          <td>
-                            <span className={`badge bg-${user.role === 'Admin' ? 'dark' : 'info'}`}>
-                              {user.role || "User"}
-                            </span>
-                          </td>
-                          <td className="text-center">
-                            <Link
-                              to={`/edit-user/${user.id}`}
-                              className="btn btn-outline-warning btn-sm me-2"
-                              title="Edit User"
-                            >
-                              <i className="fas fa-edit"></i>
-                            </Link>
-                            <button
-                              className="btn btn-outline-danger btn-sm"
-                              onClick={() => handleDelete(user.id)}
-                              title="Delete User"
-                            >
-                              <i className="fas fa-trash-alt"></i>
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan="4" className="text-center py-5 text-muted">
-                          <i className="fas fa-users-slash fa-3x mb-3"></i>
-                          <p>No users found in the database.</p>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
+              <input
+                type="text"
+                placeholder="Search by name or email..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={{
+                  width: "100%", background: "rgba(255,255,255,0.05)",
+                  border: "0.5px solid rgba(255,255,255,0.1)", borderRadius: "9px",
+                  padding: "11px 13px 11px 38px", color: "#fff", fontSize: "13px",
+                  fontFamily: font, outline: "none", boxSizing: "border-box",
+                }}
+                onFocus={(e) => e.target.style.borderColor = "rgba(74,158,255,0.4)"}
+                onBlur={(e)  => e.target.style.borderColor = "rgba(255,255,255,0.1)"}
+              />
+            </div>
 
-            <div className="mt-4 pt-3 border-top">
-              <Link to="/admin-dashboard" className="btn btn-secondary w-100">
-                <i className="fas fa-arrow-left me-2"></i> Back to Dashboard
+            {/* ── Table card ── */}
+            <div style={{ ...card, overflow: "hidden", display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
+
+              {/* Table header */}
+              <div style={{
+                display: "grid", gridTemplateColumns: "2fr 2.5fr 1fr 1fr",
+                padding: "12px 20px",
+                borderBottom: "0.5px solid rgba(255,255,255,0.06)",
+                background: "rgba(255,255,255,0.02)", flexShrink: 0,
+              }}>
+                {["User", "Email", "Role", "Actions"].map((h, i) => (
+                  <span key={h} style={{
+                    fontSize: "10px", fontWeight: "600", letterSpacing: "1.2px",
+                    color: "rgba(255,255,255,0.3)", textTransform: "uppercase",
+                    textAlign: i === 3 ? "center" : "left",
+                  }}>
+                    {h}
+                  </span>
+                ))}
+              </div>
+
+              {/* Rows */}
+              <div style={{ overflowY: "auto", flex: 1 }}>
+                {loading ? (
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 0", gap: "14px" }}>
+                    <div style={{
+                      width: "32px", height: "32px", borderRadius: "50%",
+                      border: "2px solid rgba(74,158,255,0.3)", borderTopColor: "var(--dot)",
+                      animation: "spin 0.8s linear infinite",
+                    }} />
+                    <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.35)" }}>
+                      Loading user database...
+                    </span>
+                  </div>
+                ) : filtered.length === 0 ? (
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 0", gap: "10px" }}>
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ opacity: 0.2 }}>
+                      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"
+                        stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                    <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.25)" }}>
+                      {search ? "No users match your search" : "No users found in the database"}
+                    </span>
+                  </div>
+                ) : (
+                  filtered.map((user, i) => (
+                    <div key={user.id} style={{
+                      display: "grid", gridTemplateColumns: "2fr 2.5fr 1fr 1fr",
+                      padding: "13px 20px", alignItems: "center",
+                      borderBottom: i < filtered.length - 1 ? "0.5px solid rgba(255,255,255,0.04)" : "none",
+                      transition: "background 0.15s",
+                    }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.02)"}
+                      onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                    >
+                      {/* Name + Avatar */}
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <div style={{
+                          width: "32px", height: "32px", borderRadius: "50%", flexShrink: 0,
+                          background: user.role === "Admin" ? "rgba(251,191,36,0.15)" : "var(--border)",
+                          border: user.role === "Admin" ? "0.5px solid rgba(251,191,36,0.3)" : "0.5px solid rgba(74,158,255,0.3)",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: "11px", fontWeight: "700",
+                          color: user.role === "Admin" ? "#fbbf24" : "var(--dot)",
+                        }}>
+                          {initials(user.name)}
+                        </div>
+                        <span style={{ fontSize: "13px", fontWeight: "600", color: "#fff" }}>
+                          {user.name || "No Name"}
+                        </span>
+                      </div>
+
+                      {/* Email */}
+                      <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.45)" }}>
+                        {user.email}
+                      </span>
+
+                      {/* Role badge */}
+                      <span style={{
+                        display: "inline-block", padding: "3px 10px", borderRadius: "5px",
+                        fontSize: "10px", fontWeight: "600", width: "fit-content",
+                        background: user.role === "Admin" ? "rgba(251,191,36,0.12)" : "rgba(74,158,255,0.12)",
+                        border: user.role === "Admin" ? "0.5px solid rgba(251,191,36,0.3)" : "0.5px solid rgba(74,158,255,0.3)",
+                        color: user.role === "Admin" ? "#fbbf24" : "var(--dot)",
+                      }}>
+                        {user.role || "User"}
+                      </span>
+
+                      {/* Actions */}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                        <Link to={`/edit-user/${user.id}`} title="Edit User" style={{
+                          width: "30px", height: "30px", borderRadius: "7px",
+                          background: "rgba(251,191,36,0.1)", border: "0.5px solid rgba(251,191,36,0.25)",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          transition: "opacity 0.2s", textDecoration: "none",
+                        }}
+                          onMouseEnter={(e) => e.currentTarget.style.opacity = "0.7"}
+                          onMouseLeave={(e) => e.currentTarget.style.opacity = "1"}
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"
+                              stroke="#fbbf24" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </Link>
+
+                        <button
+                          onClick={() => handleDelete(user.id, user.name)}
+                          disabled={deleting === user.id}
+                          title="Delete User"
+                          style={{
+                            width: "30px", height: "30px", borderRadius: "7px",
+                            background: "rgba(248,113,113,0.1)", border: "0.5px solid rgba(248,113,113,0.25)",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            cursor: deleting === user.id ? "not-allowed" : "pointer",
+                            transition: "opacity 0.2s",
+                            opacity: deleting === user.id ? 0.5 : 1,
+                          }}
+                          onMouseEnter={(e) => { if (deleting !== user.id) e.currentTarget.style.opacity = "0.7"; }}
+                          onMouseLeave={(e) => { if (deleting !== user.id) e.currentTarget.style.opacity = "1"; }}
+                        >
+                          {deleting === user.id ? (
+                            <div style={{
+                              width: "11px", height: "11px", borderRadius: "50%",
+                              border: "1.5px solid rgba(248,113,113,0.3)", borderTopColor: "#f87171",
+                              animation: "spin 0.8s linear infinite",
+                            }} />
+                          ) : (
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                              <polyline points="3 6 5 6 21 6" stroke="#f87171" strokeWidth="1.5" strokeLinecap="round"/>
+                              <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"
+                                stroke="#f87171" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Back button */}
+            <div style={{ flexShrink: 0 }}>
+              <Link to="/admin-dashboard" style={{
+                display: "inline-flex", alignItems: "center", gap: "8px",
+                padding: "9px 18px",
+                background: "rgba(255,255,255,0.04)",
+                border: "0.5px solid rgba(255,255,255,0.1)",
+                borderRadius: "8px", color: "rgba(255,255,255,0.5)",
+                fontSize: "12px", fontWeight: "600", textDecoration: "none",
+                transition: "all 0.2s",
+              }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.5)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                  <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Back to Dashboard
               </Link>
             </div>
+
           </div>
         </div>
       </div>
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+      `}</style>
     </div>
   );
 };

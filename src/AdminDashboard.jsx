@@ -1,270 +1,3 @@
-// import { useState, useEffect } from "react";
-// import { Link } from "react-router-dom";
-// import Navbar from "./components/NavBar";
-// import Sidebar from "./components/Sidebar";
-// import { auth, db, realDb } from "./firebase"; // Import Firebase
-// import { collection, getDocs, query, where } from "firebase/firestore"; // Firestore
-// import { ref, onValue } from "firebase/database"; // Realtime DB
-// import adminProfile from "./assets/admin.png"; // Admin profile image
-
-// const AdminDashboard = () => {
-//   const [adminName, setAdminName] = useState("Admin");
-  
-//   // 1. STATE: Holds counts and system status
-//   const [stats, setStats] = useState({
-//     totalUsers: 0,
-//     activeSensors: 0, // Will update based on real data
-//     systemStatus: "Normal",
-//     alertCount: 0
-//   });
-
-//   useEffect(() => {
-//     // A. Fetch Admin Name
-//     if (auth.currentUser) {
-//       setAdminName(auth.currentUser.displayName || "Administrator");
-//     }
-
-//     // B. Fetch Total Users Count (Firestore)
-//     const fetchUserCount = async () => {
-//       try {
-//         const q = query(collection(db, "users"), where("role", "==", "User"));
-//         const querySnapshot = await getDocs(q);
-//         setStats(prev => ({ ...prev, totalUsers: querySnapshot.size }));
-//       } catch (error) {
-//         console.error("Error fetching users:", error);
-//       }
-//     };
-//     fetchUserCount();
-
-//     // C. Monitor 4 Specific Sensors (Realtime DB)
-//     const dbRef = ref(realDb, "/");
-//     const unsubscribe = onValue(dbRef, (snapshot) => {
-//       if (snapshot.exists()) {
-//         const data = snapshot.val();
-
-//         // 1. Get values (using your exact Firebase spelling)
-//         const co2 = data.CO2_Levels || 0;         // Note: C02 (zero) based on your screenshot
-//         const mq135 = data.MQ135 || 0;
-//         const temp = data.Tempature_Sensor || 0;  // Note: Tempature (misspelled in DB)
-//         const humid = data.Humidity_Sensor || 0;
-
-//         // 2. Count Active Sensors
-//         // We assume if a value exists (even 0), the sensor is connected.
-//         let sensorCount = 0;
-//         if (data.CO2_Levels !== undefined) sensorCount++;
-//         if (data.MQ135 !== undefined) sensorCount++;
-//         if (data.Tempature_Sensor !== undefined) sensorCount++;
-//         if (data.Humidity_Sensor !== undefined) sensorCount++;
-
-//         // 3. Determine System Status & Alerts
-//         let status = "Normal";
-//         let alerts = 0;
-
-//         // CRITICAL Conditions
-//         if (co2 > 1000 || mq135 > 200) {
-//           status = "Critical";
-//           alerts += 1;
-//         } 
-//         // WARNING Conditions
-//         else if (co2 > 600 || mq135 > 100 || temp > 35) {
-//           status = "Warning";
-//           alerts += 1;
-//         }
-
-//         // 4. Update State
-//         setStats(prev => ({
-//           ...prev,
-//           activeSensors: sensorCount,
-//           systemStatus: status,
-//           alertCount: alerts
-//         }));
-//       }
-//     });
-
-//     return () => unsubscribe();
-//   }, []);
-
-//   // Helper for Status Color
-//   const getStatusColor = (status) => {
-//     if (status === "Critical") return "danger"; // Red
-//     if (status === "Warning") return "warning"; // Yellow
-//     return "success"; // Green
-//   };
-
-//   return (
-//     // Lock Screen Height (No Scroll)
-//     <div style={{ display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden" }}>
-//       <Navbar />
-
-//       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-//         <Sidebar />
-
-//         {/* MAIN CONTENT */}
-//         <div
-//           style={{
-//             flex: 1,
-//             marginLeft: "250px", // Align next to Sidebar
-//             background: "#f4f6f9",
-//             padding: "20px",
-//             display: "flex",
-//             flexDirection: "column",
-//             overflow: "hidden"
-//           }}
-//         >
-//           <div style={{ maxWidth: "1200px", width: "100%", margin: "0 auto", display: "flex", flexDirection: "column", height: "100%" }}>
-            
-//             {/* Header */}
-//             <div className="d-flex justify-content-between align-items-center mb-4">
-//               <div>
-//                 <h2 className="fw-bold text-dark mb-0">Admin Dashboard</h2>
-//                 <p className="text-muted mb-0">Overview of system performance and user management.</p>
-//               </div>
-//               <div className="text-end">
-//                 <span className={`badge bg-${getStatusColor(stats.systemStatus)} fs-6`}>
-//                   System: {stats.systemStatus}
-//                 </span>
-//               </div>
-//             </div>
-
-//             {/* Stats Cards Row */}
-//             <div className="row g-3 mb-4">
-              
-//               {/* Card 1: Total Users */}
-//               <div className="col-md-4">
-//                 <div className="card border-0 shadow-sm h-100 border-start border-4 border-primary">
-//                   <div className="card-body d-flex align-items-center justify-content-between">
-//                     <div>
-//                       <h6 className="text-muted text-uppercase mb-1">Total Users</h6>
-//                       <h2 className="fw-bold mb-0">{stats.totalUsers}</h2>
-//                     </div>
-//                     <div className="icon-box bg-soft-primary rounded-circle p-3 text-primary" style={{backgroundColor: "#e3f2fd"}}>
-//                       <i className="fas fa-users fa-2x"></i>
-//                     </div>
-//                   </div>
-//                 </div>
-//               </div>
-
-//               {/* Card 2: Active Sensors (REAL COUNT) */}
-//               <div className="col-md-4">
-//                 <div className="card border-0 shadow-sm h-100 border-start border-4 border-info">
-//                   <div className="card-body d-flex align-items-center justify-content-between">
-//                     <div>
-//                       <h6 className="text-muted text-uppercase mb-1">Active Sensors</h6>
-//                       <h2 className="fw-bold mb-0">{stats.activeSensors}</h2>
-//                       <small className="text-muted" style={{fontSize: "0.75rem"}}>Temp, Hum, CO2, MQ135</small>
-//                     </div>
-//                     <div className="icon-box bg-soft-info rounded-circle p-3 text-info" style={{backgroundColor: "#e1f5fe"}}>
-//                       <i className="fas fa-microchip fa-2x"></i>
-//                     </div>
-//                   </div>
-//                 </div>
-//               </div>
-
-//               {/* Card 3: Active Alerts (REAL LOGIC) */}
-//               <div className="col-md-4">
-//                 <div className={`card border-0 shadow-sm h-100 border-start border-4 border-${stats.alertCount > 0 ? "danger" : "success"}`}>
-//                   <div className="card-body d-flex align-items-center justify-content-between">
-//                     <div>
-//                       <h6 className="text-muted text-uppercase mb-1">System Alerts</h6>
-//                       <h2 className="fw-bold mb-0">{stats.alertCount}</h2>
-//                       <small className="text-muted" style={{fontSize: "0.75rem"}}>
-//                         {stats.alertCount > 0 ? "Thresholds Exceeded" : "All Systems Stable"}
-//                       </small>
-//                     </div>
-//                     <div className={`icon-box rounded-circle p-3 text-${stats.alertCount > 0 ? "danger" : "success"}`} style={{backgroundColor: stats.alertCount > 0 ? "#ffebee" : "#e8f5e9"}}>
-//                       <i className={`fas ${stats.alertCount > 0 ? "fa-exclamation-triangle" : "fa-check-circle"} fa-2x`}></i>
-//                     </div>
-//                   </div>
-//                 </div>
-//               </div>
-//             </div>
-
-//             {/* Main Action Section (Fills remaining space) */}
-//             <div className="row g-3" style={{ flex: 1 }}>
-              
-//               {/* Quick Actions Panel */}
-//               <div className="col-lg-8">
-//                 <div className="card border-0 shadow-sm h-100">
-//                   <div className="card-header bg-white border-bottom py-3">
-//                     <h5 className="mb-0 fw-bold">User Management</h5>
-//                   </div>
-//                   <div className="card-body d-flex align-items-center justify-content-center">
-//                     <div className="row w-100">
-                      
-//                       {/* Action 1: Add User */}
-//                       <div className="col-md-6 mb-3">
-//                         <div className="card h-100 border-primary border-1 shadow-none" style={{borderStyle: 'dashed'}}>
-//                           <div className="card-body text-center p-4 hover-bg-light">
-//                             <div className="mb-3 text-primary">
-//                               <i className="fas fa-user-plus fa-3x"></i>
-//                             </div>
-//                             <h5 className="fw-bold">Register New User</h5>
-//                             <p className="text-muted small">Create account for a new client.</p>
-//                             <Link to="/add-user" className="btn btn-primary btn-sm stretched-link">
-//                               Add User
-//                             </Link>
-//                           </div>
-//                         </div>
-//                       </div>
-
-//                       {/* Action 2: View Users */}
-//                       <div className="col-md-6 mb-3">
-//                         <div className="card h-100 border-dark border-1 shadow-none" style={{borderStyle: 'dashed'}}>
-//                           <div className="card-body text-center p-4">
-//                             <div className="mb-3 text-dark">
-//                               <i className="fas fa-users-cog fa-3x"></i>
-//                             </div>
-//                             <h5 className="fw-bold">Manage Users</h5>
-//                             <p className="text-muted small">View, Edit, or Delete existing users.</p>
-//                             <Link to="/view-users" className="btn btn-dark btn-sm stretched-link">
-//                               View All Users
-//                             </Link>
-//                           </div>
-//                         </div>
-//                       </div>
-
-//                     </div>
-//                   </div>
-//                 </div>
-//               </div>
-
-//               {/* Sidebar Info Panel */}
-//               <div className="col-lg-4">
-//                 <div className="card border-0 shadow-sm h-100 bg-dark text-white">
-//                   <div className="card-body p-4 d-flex flex-column justify-content-center text-center">
-//                     <div className="mb-4">
-//                       <img 
-//                         src={adminProfile}
-//                         alt="Admin" 
-//                         className="rounded-circle border border-3 border-white mb-3"
-//                         style={{ width: "80px", height: "80px", objectFit: "cover" }}
-//                       />
-//                       <h4>{adminName}</h4>
-//                       <p className="text-white-50">Super Admin</p>
-//                     </div>
-//                     <hr className="border-secondary"/>
-//                     <div className="d-grid gap-3">
-//                       <Link to="/profile" className="btn btn-outline-light">
-//                         <i className="fas fa-user-edit me-2"></i> Edit Profile
-//                       </Link>
-//                       <Link to="/change-password" className="btn btn-outline-light">
-//                         <i className="fas fa-key me-2"></i> Change Password
-//                       </Link>
-//                     </div>
-//                   </div>
-//                 </div>
-//               </div>
-
-//             </div>
-//           </div>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default AdminDashboard;
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "./components/NavBar";
@@ -272,7 +5,6 @@ import Sidebar from "./components/Sidebar";
 import { auth, db, realDb } from "./firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { ref, onValue } from "firebase/database";
-import adminProfile from "./assets/admin.png";
 
 const AdminDashboard = () => {
   const [adminName, setAdminName] = useState("Admin");
@@ -280,23 +12,30 @@ const AdminDashboard = () => {
     totalUsers: 0,
     activeSensors: 0,
     systemStatus: "Normal",
-    alertCount: 0
+    alertCount: 0,
   });
 
   useEffect(() => {
-    if (auth.currentUser) setAdminName(auth.currentUser.displayName || "Administrator");
+    if (auth.currentUser)
+      setAdminName(
+        auth.currentUser.displayName ||
+          localStorage.getItem("userName") ||
+          "Administrator",
+      );
 
     const fetchUserCount = async () => {
       try {
-        const q = query(collection(db, "users"), where("role", "==", "User"));
-        const querySnapshot = await getDocs(q);
-        setStats(prev => ({ ...prev, totalUsers: querySnapshot.size }));
-      } catch (error) { console.error(error); }
+        const snap = await getDocs(
+          query(collection(db, "users"), where("role", "==", "User")),
+        );
+        setStats((p) => ({ ...p, totalUsers: snap.size }));
+      } catch (e) {
+        console.error(e);
+      }
     };
     fetchUserCount();
 
-    const dbRef = ref(realDb, "/");
-    const unsubscribe = onValue(dbRef, (snapshot) => {
+    const unsubscribe = onValue(ref(realDb, "/"), (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
         const co2 = data.CO2_Levels || 0;
@@ -309,133 +48,672 @@ const AdminDashboard = () => {
         if (data.Tempature_Sensor !== undefined) sensorCount++;
         if (data.Humidity_Sensor !== undefined) sensorCount++;
 
-        let status = "Normal";
-        let alerts = 0;
-        if (co2 > 1000 || mq135 > 200) { status = "Critical"; alerts += 1; }
-        else if (co2 > 600 || mq135 > 100 || temp > 35) { status = "Warning"; alerts += 1; }
+        let status = "Normal",
+          alerts = 0;
+        if (co2 > 1000 || mq135 > 200) {
+          status = "Critical";
+          alerts = 1;
+        } else if (co2 > 600 || mq135 > 100 || temp > 35) {
+          status = "Warning";
+          alerts = 1;
+        }
 
-        setStats(prev => ({ ...prev, activeSensors: sensorCount, systemStatus: status, alertCount: alerts }));
+        setStats((p) => ({
+          ...p,
+          activeSensors: sensorCount,
+          systemStatus: status,
+          alertCount: alerts,
+        }));
       }
     });
     return () => unsubscribe();
   }, []);
 
-  const getStatusColor = (status) => {
-    if (status === "Critical") return "#ff4d4d";
-    if (status === "Warning") return "#ffcc00";
-    return "#2ecc71";
+  const statusCfg = {
+    Normal: {
+      color: "#4ade80",
+      bg: "rgba(74,222,128,0.12)",
+      border: "rgba(74,222,128,0.3)",
+    },
+    Warning: {
+      color: "#fbbf24",
+      bg: "rgba(251,191,36,0.12)",
+      border: "rgba(251,191,36,0.3)",
+    },
+    Critical: {
+      color: "#f87171",
+      bg: "rgba(248,113,113,0.12)",
+      border: "rgba(248,113,113,0.3)",
+    },
+  };
+  const sc = statusCfg[stats.systemStatus] || statusCfg.Normal;
+  const font = "'Inter','Segoe UI',sans-serif";
+
+  const card = {
+    background: "var(--card)",
+    backdropFilter: "blur(16px)",
+    WebkitBackdropFilter: "blur(16px)",
+    border: "0.5px solid var(--border)",
+    borderRadius: "14px",
+    fontFamily: font,
   };
 
+  const initials = adminName
+    ? adminName
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : "A";
+
+  const statCards = [
+    {
+      label: "Total Users",
+      val: stats.totalUsers,
+      color: "var(--dot)",
+      bg: "rgba(74,158,255,0.1)",
+      border: "rgba(74,158,255,0.2)",
+      icon: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
+      sub: "Registered accounts",
+    },
+    {
+      label: "Active Sensors",
+      val: `${stats.activeSensors}/4`,
+      color: "var(--dot)",
+      bg: "rgba(74,222,128,0.1)",
+      border: "rgba(74,222,128,0.2)",
+      icon: "M12 2a4 4 0 014 4v6a4 4 0 01-8 0V6a4 4 0 014-4zM8 14a7 7 0 0010.95 1M5.07 13A7 7 0 0112 19",
+      sub: "Temp · Hum · CO₂ · MQ135",
+      progress: stats.activeSensors / 4,
+    },
+    {
+      label: "System Alerts",
+      val: stats.alertCount,
+      color: stats.alertCount > 0 ? "#f87171" : "#4ade80",
+      bg:
+        stats.alertCount > 0 ? "rgba(248,113,113,0.1)" : "rgba(74,222,128,0.1)",
+      border:
+        stats.alertCount > 0 ? "rgba(248,113,113,0.2)" : "rgba(74,222,128,0.2)",
+      icon: "M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0",
+      sub: stats.alertCount > 0 ? "Thresholds exceeded" : "All systems stable",
+    },
+  ];
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden", backgroundColor: "#f0f2f5" }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100vh",
+        overflow: "hidden",
+        background: "var(--bg)",
+        fontFamily: font,
+      }}
+    >
       <Navbar />
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
         <Sidebar />
 
-        {/* MAIN CONTENT */}
-        <div style={{ flex: 1, marginLeft: "250px", padding: "30px", overflowY: "auto", background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)" }}>
-          
-          {/* Header Section */}
-          <div className="d-flex justify-content-between align-items-end mb-4">
-            <div>
-              <h1 className="fw-bold text-dark mb-1">Command Center</h1>
-              <p className="text-muted">Welcome back, <span className="text-primary fw-bold">{adminName}</span></p>
-            </div>
-            <div className="text-end">
-              <div style={{ 
-                padding: "8px 20px", background: "white", borderRadius: "50px", 
-                boxShadow: "0 4px 15px rgba(0,0,0,0.05)", display: "flex", alignItems: "center", gap: "10px" 
-              }}>
-                <span style={{ height: "12px", width: "12px", borderRadius: "50%", backgroundColor: getStatusColor(stats.systemStatus), display: "inline-block" }}></span>
-                <span className="fw-bold small text-uppercase">System {stats.systemStatus}</span>
+        <div
+          style={{
+            flex: 1,
+            marginLeft: "240px",
+            padding: "24px",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <div
+            style={{
+              maxWidth: "1100px",
+              width: "100%",
+              margin: "0 auto",
+              display: "flex",
+              flexDirection: "column",
+              gap: "18px",
+              height: "100%",
+            }}
+          >
+            {/* ── Header ── */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexShrink: 0,
+              }}
+            >
+              <div>
+                <h2
+                  style={{
+                    fontSize: "22px",
+                    fontWeight: "700",
+                    color: "#fff",
+                    margin: 0,
+                  }}
+                >
+                  Command Center
+                </h2>
+                <p
+                  style={{
+                    fontSize: "13px",
+                    color: "rgba(255,255,255,0.4)",
+                    margin: "5px 0 0",
+                  }}
+                >
+                  Welcome back,{" "}
+                  <span style={{ color: "var(--dot)", fontWeight: "600" }}>
+                    {adminName}
+                  </span>
+                </p>
+              </div>
+
+              {/* System status pill */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "7px 16px",
+                  borderRadius: "20px",
+                  background: sc.bg,
+                  border: `0.5px solid ${sc.border}`,
+                }}
+              >
+                <div
+                  style={{
+                    width: "8px",
+                    height: "8px",
+                    borderRadius: "50%",
+                    background: sc.color,
+                    boxShadow: `0 0 6px ${sc.color}`,
+                    animation: "pulse-dot 1.5s ease-in-out infinite",
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: "12px",
+                    fontWeight: "600",
+                    color: sc.color,
+                  }}
+                >
+                  System {stats.systemStatus}
+                </span>
               </div>
             </div>
-          </div>
 
-          {/* Top Stats Cards */}
-          <div className="row g-4 mb-4">
-            {[
-              { label: "Total Users", val: stats.totalUsers, icon: "fa-users", color: "#4e73df" },
-              { label: "Active Sensors", val: stats.activeSensors, icon: "fa-microchip", color: "#1cc88a", total: 4 },
-              { label: "Active Alerts", val: stats.alertCount, icon: "fa-bell", color: stats.alertCount > 0 ? "#e74a3b" : "#36b9cc" }
-            ].map((stat, i) => (
-              <div className="col-md-4" key={i}>
-                <div className="card border-0 shadow-sm p-3" style={{ borderRadius: "20px", transition: "transform 0.3s" }}>
-                  <div className="card-body">
-                    <div className="d-flex justify-content-between align-items-center mb-3">
-                      <div style={{ color: stat.color, background: `${stat.color}15`, padding: "12px", borderRadius: "15px" }}>
-                        <i className={`fas ${stat.icon} fa-2x`}></i>
-                      </div>
-                      <div className="text-end">
-                        <h6 className="text-muted small text-uppercase fw-bold mb-0">{stat.label}</h6>
-                        <h2 className="fw-bold mb-0">{stat.val}</h2>
-                      </div>
+            {/* ── Stat Cards ── */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3,1fr)",
+                gap: "14px",
+                flexShrink: 0,
+              }}
+            >
+              {statCards.map((s) => (
+                <div
+                  key={s.label}
+                  style={{
+                    ...card,
+                    padding: "18px",
+                    background: s.bg,
+                    border: `0.5px solid ${s.border}`,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                    }}
+                  >
+                    <div>
+                      <p
+                        style={{
+                          margin: "0 0 6px",
+                          fontSize: "10px",
+                          fontWeight: "600",
+                          letterSpacing: "1.5px",
+                          color: "rgba(255,255,255,0.4)",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {s.label}
+                      </p>
+                      <p
+                        style={{
+                          margin: "0 0 4px",
+                          fontSize: "30px",
+                          fontWeight: "700",
+                          color: "#fff",
+                          lineHeight: 1,
+                        }}
+                      >
+                        {s.val}
+                      </p>
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: "11px",
+                          color: "rgba(255,255,255,0.35)",
+                        }}
+                      >
+                        {s.sub}
+                      </p>
                     </div>
-                    {stat.total && (
-                      <div className="progress" style={{ height: "6px", backgroundColor: "#f0f0f0" }}>
-                        <div className="progress-bar" style={{ width: `${(stat.val/stat.total)*100}%`, backgroundColor: stat.color }}></div>
-                      </div>
-                    )}
+                    <div
+                      style={{
+                        width: "42px",
+                        height: "42px",
+                        borderRadius: "10px",
+                        flexShrink: 0,
+                        background: `${s.color}20`,
+                        border: `0.5px solid ${s.color}40`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                      >
+                        <path
+                          d={s.icon}
+                          stroke={s.color}
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </div>
                   </div>
+                  {s.progress !== undefined && (
+                    <div
+                      style={{
+                        marginTop: "12px",
+                        height: "3px",
+                        background: "rgba(255,255,255,0.08)",
+                        borderRadius: "2px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: "100%",
+                          borderRadius: "2px",
+                          background: s.color,
+                          width: `${s.progress * 100}%`,
+                          transition: "width 0.6s ease",
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* ── Bottom row: Actions + Admin card ── */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "2fr 1fr",
+                gap: "14px",
+                flex: 1,
+                minHeight: 0,
+              }}
+            >
+              {/* Quick Operations */}
+              <div
+                style={{
+                  ...card,
+                  padding: 0,
+                  overflow: "hidden",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                <div
+                  style={{
+                    padding: "14px 20px",
+                    borderBottom: "0.5px solid rgba(255,255,255,0.06)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"
+                      stroke="var(--dot)"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <span
+                    style={{
+                      fontSize: "13px",
+                      fontWeight: "600",
+                      color: "#fff",
+                    }}
+                  >
+                    User Management
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    flex: 1,
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "14px",
+                    padding: "16px",
+                  }}
+                >
+                  {[
+                    {
+                      to: "/add-user",
+                      title: "Register New User",
+                      sub: "Onboard a new client account",
+                      color: "var(--dot)",
+                      bg: "rgba(74,158,255,0.08)",
+                      border: "rgba(74,158,255,0.2)",
+                      icon: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M12 7a4 4 0 110 8 4 4 0 010-8zM19 8v6M22 11h-6",
+                    },
+                    {
+                      to: "/view-users",
+                      title: "Manage Users",
+                      sub: "View, edit or delete accounts",
+                      color: "#a78bfa",
+                      bg: "rgba(167,139,250,0.08)",
+                      border: "rgba(167,139,250,0.2)",
+                      icon: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
+                    },
+                  ].map((item) => (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      style={{ textDecoration: "none" }}
+                    >
+                      <div
+                        style={{
+                          height: "100%",
+                          padding: "20px",
+                          background: item.bg,
+                          border: `0.5px solid ${item.border}`,
+                          borderRadius: "12px",
+                          textAlign: "center",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "10px",
+                          transition: "opacity 0.2s",
+                          cursor: "pointer",
+                        }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.opacity = "0.8")
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.opacity = "1")
+                        }
+                      >
+                        <div
+                          style={{
+                            width: "48px",
+                            height: "48px",
+                            borderRadius: "12px",
+                            background: `${item.color}15`,
+                            border: `0.5px solid ${item.color}40`,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <svg
+                            width="22"
+                            height="22"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                          >
+                            <path
+                              d={item.icon}
+                              stroke={item.color}
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </div>
+                        <div>
+                          <p
+                            style={{
+                              margin: "0 0 4px",
+                              fontSize: "13px",
+                              fontWeight: "600",
+                              color: "#fff",
+                            }}
+                          >
+                            {item.title}
+                          </p>
+                          <p
+                            style={{
+                              margin: 0,
+                              fontSize: "11px",
+                              color: "rgba(255,255,255,0.4)",
+                            }}
+                          >
+                            {item.sub}
+                          </p>
+                        </div>
+                        <span
+                          style={{
+                            display: "inline-block",
+                            padding: "4px 14px",
+                            borderRadius: "6px",
+                            fontSize: "11px",
+                            fontWeight: "600",
+                            marginTop: "4px",
+                            background: `${item.color}20`,
+                            border: `0.5px solid ${item.color}40`,
+                            color: item.color,
+                          }}
+                        >
+                          Open →
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
 
-          <div className="row g-4">
-            {/* Action Panel */}
-            <div className="col-lg-8">
-              <div className="card border-0 shadow-sm p-4" style={{ borderRadius: "25px", height: "100%" }}>
-                <h5 className="fw-bold mb-4">Quick Operations</h5>
-                <div className="row g-3">
-                  <div className="col-md-6">
-                    <Link to="/add-user" className="text-decoration-none">
-                      <div className="p-4 border border-2 rounded-4 text-center border-primary-subtle bg-light-subtle h-100" style={{ borderStyle: "dashed" }}>
-                        <i className="fas fa-user-plus fa-3x text-primary mb-3"></i>
-                        <h6 className="fw-bold text-dark">Register New User</h6>
-                        <p className="text-muted small">Onboard a new client system</p>
-                      </div>
-                    </Link>
+              {/* Admin profile card */}
+              <div
+                style={{
+                  ...card,
+                  padding: 0,
+                  overflow: "hidden",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                {/* Top accent */}
+                <div
+                  style={{
+                    height: "4px",
+                    background:
+                      "linear-gradient(90deg, var(--accent), var(--dot), #a78bfa)",
+                  }}
+                />
+
+                <div
+                  style={{
+                    flex: 1,
+                    padding: "20px",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    textAlign: "center",
+                    gap: "14px",
+                  }}
+                >
+                  {/* Avatar */}
+                  <div
+                    style={{
+                      width: "64px",
+                      height: "64px",
+                      borderRadius: "50%",
+                      background: `var(--dot)30`,
+                      border: `2px solid var(--dot)`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "22px",
+                      fontWeight: "700",
+                      color: "var(--dot)",
+                      position: "relative",
+                    }}
+                  >
+                    {initials}
+                    {/* Online dot */}
+                    <div
+                      style={{
+                        position: "absolute",
+                        bottom: "2px",
+                        right: "2px",
+                        width: "12px",
+                        height: "12px",
+                        borderRadius: "50%",
+                        background: "#4ade80",
+                        border: `2px solid var(--card)`,
+                        boxShadow: "0 0 6px #4ade80",
+                      }}
+                    />
                   </div>
-                  <div className="col-md-6">
-                    <Link to="/view-users" className="text-decoration-none">
-                      <div className="p-4 border border-2 rounded-4 text-center border-dark-subtle bg-light-subtle h-100" style={{ borderStyle: "dashed" }}>
-                        <i className="fas fa-users-cog fa-3x text-dark mb-3"></i>
-                        <h6 className="fw-bold text-dark">System Management</h6>
-                        <p className="text-muted small">Edit/Review existing nodes</p>
-                      </div>
-                    </Link>
+
+                  <div>
+                    <p
+                      style={{
+                        margin: "0 0 4px",
+                        fontSize: "15px",
+                        fontWeight: "700",
+                        color: "#fff",
+                      }}
+                    >
+                      {adminName}
+                    </p>
+                    <span
+                      style={{
+                        padding: "2px 10px",
+                        borderRadius: "5px",
+                        fontSize: "10px",
+                        fontWeight: "600",
+                        background: "rgba(251,191,36,0.15)",
+                        border: "0.5px solid rgba(251,191,36,0.3)",
+                        color: "#fbbf24",
+                      }}
+                    >
+                      Admin
+                    </span>
+                  </div>
+
+                  {/* Divider */}
+                  <div
+                    style={{
+                      width: "100%",
+                      height: "0.5px",
+                      background: "rgba(255,255,255,0.06)",
+                    }}
+                  />
+
+                  {/* Action links */}
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "8px",
+                      width: "100%",
+                    }}
+                  >
+                    {[
+                      {
+                        to: "/profile",
+                        label: "Account Settings",
+                        color: "var(--dot)",
+                        bg: "rgba(74,158,255,0.1)",
+                        border: "rgba(74,158,255,0.2)",
+                        icon: "M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z",
+                      },
+                      {
+                        to: "/change-password",
+                        label: "Security",
+                        color: "#a78bfa",
+                        bg: "rgba(167,139,250,0.1)",
+                        border: "rgba(167,139,250,0.2)",
+                        icon: "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z",
+                      },
+                    ].map((item) => (
+                      <Link
+                        key={item.to}
+                        to={item.to}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "10px",
+                          padding: "10px 14px",
+                          borderRadius: "9px",
+                          textDecoration: "none",
+                          background: item.bg,
+                          border: `0.5px solid ${item.border}`,
+                          color: item.color,
+                          fontSize: "12px",
+                          fontWeight: "600",
+                          transition: "opacity 0.2s",
+                        }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.opacity = "0.75")
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.opacity = "1")
+                        }
+                      >
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                        >
+                          <path
+                            d={item.icon}
+                            stroke={item.color}
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                        {item.label}
+                      </Link>
+                    ))}
                   </div>
                 </div>
               </div>
             </div>
-
-            {/* Admin Profile Panel */}
-            <div className="col-lg-4">
-              <div className="card border-0 shadow text-white" style={{ borderRadius: "25px", background: "#1a1c23", padding: "20px" }}>
-                <div className="card-body text-center">
-                  <div className="position-relative d-inline-block mb-3">
-                    <img src={adminProfile} alt="Admin" className="rounded-circle border border-4 border-primary" style={{ width: "100px", height: "100px", objectFit: "cover" }} />
-                    <span className="position-absolute bottom-0 end-0 bg-success border border-white rounded-circle" style={{ width: "20px", height: "20px" }}></span>
-                  </div>
-                  <h4 className="fw-bold mb-0">{adminName}</h4>
-                  <p className="text-muted small mb-4">Master Administrator</p>
-                  
-                  <div className="d-grid gap-2">
-                    <Link to="/profile" className="btn btn-primary py-2 rounded-pill shadow-sm">
-                      <i className="fas fa-user-edit me-2"></i> Account Settings
-                    </Link>
-                    <Link to="/change-password" className="btn btn-outline-light py-2 rounded-pill">
-                      <i className="fas fa-shield-alt me-2"></i> Security
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
-
         </div>
       </div>
+
+      <style>{`
+        @keyframes pulse-dot {
+          0%,100% { opacity:1; }
+          50%      { opacity:0.4; }
+        }
+      `}</style>
     </div>
   );
 };
