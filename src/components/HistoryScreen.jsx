@@ -16,19 +16,27 @@ const HistoryScreen = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const historyRef = ref(realDb, "history");
+    const historyRef = ref(realDb, "air_quality/device1/history");
+
     const unsubscribe = onValue(historyRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
-        const formatted = [{
-          id: "record_1",
-          co2:      data.CO2_Levels,
-          humidity: data.Humidity_Sensor,
-          mq135:    data.MQ135,
-          temp:     data.Tempature_Sensor,
-          timestamp:     new Date().toLocaleString(),
-          formattedDate: new Date().toISOString().split("T")[0],
-        }];
+
+        const formatted = Object.entries(data)
+          .sort(([idA], [idB]) => idB.localeCompare(idA)) // latest first
+          .map(([id, item]) => ({
+            id,
+            co2: Number(item.CO2_Levels || 0),
+            humidity: Number(item.Humidity_Sensor || 0),
+            mq135: Number(item.MQ135 || 0),
+            temp: Number(item.Tempature_Sensor || 0),
+            lat: Number(item.lat || 0),
+            lon: Number(item.lon || 0),
+            timestamp: item.timestamp || new Date().toLocaleString(),
+            formattedDate:
+              item.formattedDate || new Date().toISOString().split("T")[0],
+          }));
+
         setHistoryData(formatted);
         setFilteredData(formatted);
       } else {
@@ -36,12 +44,21 @@ const HistoryScreen = () => {
         setFilteredData([]);
       }
     });
+
     return () => unsubscribe();
   }, []);
 
   const handleFilter = () => {
-    if (!startDate || !endDate) { alert("Please select both dates."); return; }
-    setFilteredData(historyData.filter((item) => item.formattedDate >= startDate && item.formattedDate <= endDate));
+    if (!startDate || !endDate) {
+      alert("Please select both dates.");
+      return;
+    }
+
+    setFilteredData(
+      historyData.filter(
+        (item) => item.formattedDate >= startDate && item.formattedDate <= endDate
+      )
+    );
   };
 
   const resetFilter = () => {
@@ -63,16 +80,43 @@ const HistoryScreen = () => {
     autoTable(doc, {
       startY: 22,
       head: [["Date/Time", "Temp (°C)", "Humidity (%)", "CO2 (ppm)", "MQ135"]],
-      body: filteredData.map((d) => [d.timestamp, d.temp, d.humidity, d.co2, d.mq135]),
+      body: filteredData.map((d) => [
+        d.timestamp,
+        d.temp,
+        d.humidity,
+        d.co2,
+        d.mq135,
+      ]),
     });
     doc.save("Historical_Data.pdf");
   };
 
-  const getStatus = (co2) => {
-    if (co2 > 1000) return { label: "Poor",     color: "#f87171", bg: "rgba(248,113,113,0.12)", border: "rgba(248,113,113,0.25)" };
-    if (co2 > 600)  return { label: "Moderate", color: "#fbbf24", bg: "rgba(251,191,36,0.12)",  border: "rgba(251,191,36,0.25)"  };
-    return               { label: "Healthy",  color: "#4ade80", bg: "rgba(74,222,128,0.12)",  border: "rgba(74,222,128,0.25)"  };
+  const getStatus = (co2, mq135) => {
+  if (co2 >= 800 || mq135 >= 800) {
+    return {
+      label: "Poor",
+      color: "#f87171",
+      bg: "rgba(248,113,113,0.12)",
+      border: "rgba(248,113,113,0.25)",
+    };
+  }
+
+  if (co2 >= 600 || mq135 >= 600) {
+    return {
+      label: "Moderate",
+      color: "#fbbf24",
+      bg: "rgba(251,191,36,0.12)",
+      border: "rgba(251,191,36,0.25)",
+    };
+  }
+
+  return {
+    label: "Healthy",
+    color: "#4ade80",
+    bg: "rgba(74,222,128,0.12)",
+    border: "rgba(74,222,128,0.25)",
   };
+};
 
   const font   = "'Inter','Segoe UI',sans-serif";
   const card   = { background: "var(--card)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", border: "0.5px solid var(--border)", borderRadius: "14px", fontFamily: font };
@@ -185,7 +229,7 @@ const HistoryScreen = () => {
               {/* Table rows */}
               {filteredData.length > 0 ? (
                 filteredData.map((row, i) => {
-                  const st = getStatus(row.co2);
+                  const st = getStatus(row.co2, row.mq135);
                   return (
                     <div key={row.id} style={{
                       display: "grid",
@@ -228,7 +272,7 @@ const HistoryScreen = () => {
                       {/* CO2 */}
                       <span style={{
                         fontSize: "13px", fontWeight: "700",
-                        color: row.co2 > 1000 ? "#f87171" : row.co2 > 600 ? "#fbbf24" : "#4ade80",
+                        color: row.co2 >= 800 ? "#f87171" : row.co2 >= 600 ? "#fbbf24" : "#4ade80",
                       }}>
                         {row.co2} <span style={{ fontSize: "10px", fontWeight: "400", opacity: 0.6 }}>ppm</span>
                       </span>

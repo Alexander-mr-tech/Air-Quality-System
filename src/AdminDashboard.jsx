@@ -35,37 +35,49 @@ const AdminDashboard = () => {
     };
     fetchUserCount();
 
-    const unsubscribe = onValue(ref(realDb, "/"), (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        const co2 = data.CO2_Levels || 0;
-        const mq135 = data.MQ135 || 0;
-        const temp = data.Tempature_Sensor || 0;
+    const unsubscribe = onValue(
+      ref(realDb, "air_quality/device1"),
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.val();
 
-        let sensorCount = 0;
-        if (data.CO2_Levels !== undefined) sensorCount++;
-        if (data.MQ135 !== undefined) sensorCount++;
-        if (data.Tempature_Sensor !== undefined) sensorCount++;
-        if (data.Humidity_Sensor !== undefined) sensorCount++;
+          const co2 = Number(data.CO2_Levels || 0);
+          const mq135 = Number(data.MQ135 || 0);
 
-        let status = "Normal",
-          alerts = 0;
-        if (co2 > 1000 || mq135 > 200) {
-          status = "Critical";
-          alerts = 1;
-        } else if (co2 > 600 || mq135 > 100 || temp > 35) {
-          status = "Warning";
-          alerts = 1;
+          let sensorCount = 0;
+          if (data.CO2_Levels !== undefined) sensorCount++;
+          if (data.MQ135 !== undefined) sensorCount++;
+          if (data.Tempature_Sensor !== undefined) sensorCount++;
+          if (data.Humidity_Sensor !== undefined) sensorCount++;
+
+          let status = "Normal";
+          let alerts = 0;
+
+          if (co2 >= 800 || mq135 >= 800) {
+            status = "Critical";
+            alerts = 1;
+          } else if (co2 >= 600 || mq135 >= 600) {
+            status = "Warning";
+            alerts = 1;
+          }
+
+          setStats((p) => ({
+            ...p,
+            activeSensors: sensorCount,
+            systemStatus: status,
+            alertCount: alerts,
+          }));
+        } else {
+          setStats((p) => ({
+            ...p,
+            activeSensors: 0,
+            systemStatus: "Normal",
+            alertCount: 0,
+          }));
         }
+      },
+    );
 
-        setStats((p) => ({
-          ...p,
-          activeSensors: sensorCount,
-          systemStatus: status,
-          alertCount: alerts,
-        }));
-      }
-    });
     return () => unsubscribe();
   }, []);
 
@@ -86,6 +98,7 @@ const AdminDashboard = () => {
       border: "rgba(248,113,113,0.3)",
     },
   };
+
   const sc = statusCfg[stats.systemStatus] || statusCfg.Normal;
   const font = "'Inter','Segoe UI',sans-serif";
 
@@ -152,6 +165,7 @@ const AdminDashboard = () => {
       }}
     >
       <Navbar />
+
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
         <Sidebar />
 
@@ -304,6 +318,7 @@ const AdminDashboard = () => {
                         {s.sub}
                       </p>
                     </div>
+
                     <div
                       style={{
                         width: "42px",
@@ -333,6 +348,7 @@ const AdminDashboard = () => {
                       </svg>
                     </div>
                   </div>
+
                   {s.progress !== undefined && (
                     <div
                       style={{
@@ -490,6 +506,7 @@ const AdminDashboard = () => {
                             />
                           </svg>
                         </div>
+
                         <div>
                           <p
                             style={{
@@ -511,6 +528,7 @@ const AdminDashboard = () => {
                             {item.sub}
                           </p>
                         </div>
+
                         <span
                           style={{
                             display: "inline-block",
@@ -542,7 +560,6 @@ const AdminDashboard = () => {
                   flexDirection: "column",
                 }}
               >
-                {/* Top accent */}
                 <div
                   style={{
                     height: "4px",
@@ -563,7 +580,6 @@ const AdminDashboard = () => {
                     gap: "14px",
                   }}
                 >
-                  {/* Avatar */}
                   <div
                     style={{
                       width: "64px",
@@ -581,7 +597,7 @@ const AdminDashboard = () => {
                     }}
                   >
                     {initials}
-                    {/* Online dot */}
+
                     <div
                       style={{
                         position: "absolute",
@@ -623,7 +639,6 @@ const AdminDashboard = () => {
                     </span>
                   </div>
 
-                  {/* Divider */}
                   <div
                     style={{
                       width: "100%",
@@ -632,7 +647,6 @@ const AdminDashboard = () => {
                     }}
                   />
 
-                  {/* Action links */}
                   <div
                     style={{
                       display: "flex",
